@@ -47,19 +47,19 @@ export default function Home() {
                 priority
             />
         )}
-        <div className="absolute inset-0 bg-black/60" />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
         <div className="relative z-10 flex h-full flex-col items-center justify-center text-center px-4">
-          <h1 className="animate-fade-in-up font-headline text-5xl md:text-7xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-gray-200 via-gray-400 to-gray-600">
+          <h1 className="animate-fade-in-up font-headline text-5xl md:text-7xl font-bold tracking-tighter text-foreground">
             AsraPy
           </h1>
-          <p className="mt-4 max-w-2xl font-headline text-lg md:text-2xl text-primary-foreground/80 animate-fade-in-up animation-delay-300">
+          <p className="mt-4 max-w-2xl font-headline text-lg md:text-2xl text-muted-foreground animate-fade-in-up animation-delay-300">
             Coding Beyond Imagination
           </p>
           <div className="mt-8 flex gap-4 animate-fade-in-up animation-delay-600">
-            <Button asChild size="lg" className="bg-primary text-primary-foreground transition-transform hover:scale-105">
+            <Button asChild size="lg" className="transition-transform hover:scale-105">
               <Link href="/projects">View Projects</Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="border-primary-foreground/50 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground transition-transform hover:scale-105">
+            <Button asChild size="lg" variant="outline" className="transition-transform hover:scale-105">
               <Link href="#contact">Get in Touch</Link>
             </Button>
           </div>
