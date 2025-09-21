@@ -1,3 +1,4 @@
+
 {
   "placeholderImages": [
     {
@@ -5,6 +6,54 @@
       "description": "Abstract background with code elements",
       "imageUrl": "https://picsum.photos/seed/hero-bg/1920/1080",
       "imageHint": "code abstract"
+    },
+    {
+      "id": "zenflow-img",
+      "description": "A collaborative workspace interface",
+      "imageUrl": "https://picsum.photos/seed/zenflow/600/400",
+      "imageHint": "productivity workspace"
+    },
+    {
+      "id": "zencloud-img",
+      "description": "Cloud storage interface showing files and folders",
+      "imageUrl": "https://picsum.photos/seed/zencloud/600/400",
+      "imageHint": "cloud storage"
+    },
+    {
+      "id": "asra-tutor-img",
+      "description": "An AI tutor chat interface",
+      "imageUrl": "https://picsum.photos/seed/asra-tutor/600/400",
+      "imageHint": "AI education"
+    },
+    {
+      "id": "ai-harshika-img",
+      "description": "An AI companion chat interface",
+      "imageUrl": "https://picsum.photos/seed/ai-harshika/600/400",
+      "imageHint": "AI companion"
+    },
+    {
+      "id": "taskify-img",
+      "description": "A kanban board for task management",
+      "imageUrl": "https://picsum.photos/seed/taskify/600/400",
+      "imageHint": "task management"
+    },
+    {
+      "id": "azoya-img",
+      "description": "An e-commerce storefront",
+      "imageUrl": "https://picsum.photos/seed/azoya/600/400",
+      "imageHint": "ecommerce store"
+    },
+    {
+      "id": "bsd-public-school-img",
+      "description": "A school building exterior",
+      "imageUrl": "https://picsum.photos/seed/bsdps/600/400",
+      "imageHint": "school building"
+    },
+    {
+      "id": "bsd-chat-img",
+      "description": "A real-time chat application interface",
+      "imageUrl": "https://picsum.photos/seed/bsd-chat/600/400",
+      "imageHint": "chat bubbles"
     }
   ]
 }
