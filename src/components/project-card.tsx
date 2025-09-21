@@ -21,6 +21,15 @@ export function ProjectCard({ project }: ProjectCardProps) {
           className="object-cover"
           data-ai-hint={project.imageHint}
         />
+        <div className="absolute top-3 left-3 bg-black/50 rounded-full p-1">
+          <Image
+            src="https://firebasestudio-hosting.web.app/images/_B_y8G-IA/AsraPy.jpeg"
+            alt="AsraPy Logo"
+            width={32}
+            height={32}
+            className="rounded-full"
+          />
+        </div>
       </div>
       <CardContent className="p-4 flex flex-col flex-grow">
         <h3 className="font-headline text-lg font-semibold text-foreground">{project.name}</h3>
@@ -33,14 +42,14 @@ export function ProjectCard({ project }: ProjectCardProps) {
         <div className="mt-4 flex gap-2">
           {project.projectUrl && (
             <Button asChild variant="outline" size="sm" className="group/button">
-              <Link href={project.projectUrl}>
+              <Link href={project.projectUrl} target="_blank" rel="noopener noreferrer">
                 View Project <ArrowUpRight className="h-4 w-4 ml-2 transition-transform group-hover/button:translate-x-1 group-hover/button:-translate-y-1" />
               </Link>
             </Button>
           )}
           {project.codeUrl && (
             <Button asChild variant="ghost" size="sm">
-              <Link href={project.codeUrl}>
+              <Link href={project.codeUrl} target="_blank" rel="noopener noreferrer">
                 View Code
               </Link>
             </Button>
