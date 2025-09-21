@@ -1,6 +1,7 @@
 "use client";
 
-import { useFormState, useFormStatus } from "react-dom";
+import { useActionState } from "react";
+import { useFormStatus } from "react-dom";
 import { generateIcon } from "@/app/actions";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -34,7 +35,7 @@ function SubmitButton() {
 }
 
 export function LogoGenerator() {
-  const [state, formAction] = useFormState(generateIcon, initialState);
+  const [state, formAction] = useActionState(generateIcon, initialState);
 
   return (
     <Card className="max-w-2xl mx-auto bg-card">
