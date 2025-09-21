@@ -36,7 +36,7 @@ export default function Home() {
   return (
     <>
       {/* Hero Section */}
-      <section className="relative h-[calc(100vh-3.5rem)] w-full">
+      <section className="relative h-[calc(100vh-3.5rem)] w-full overflow-hidden">
         {heroImage && (
             <Image
                 src={heroImage.imageUrl}
@@ -47,19 +47,19 @@ export default function Home() {
                 priority
             />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
+        <div className="absolute inset-0 bg-black/60" />
         <div className="relative z-10 flex h-full flex-col items-center justify-center text-center px-4">
-          <h1 className="font-headline text-5xl md:text-7xl font-bold tracking-tighter text-foreground">
+          <h1 className="animate-fade-in-up font-headline text-5xl md:text-7xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-gray-200 via-gray-400 to-gray-600">
             AsraPy
           </h1>
-          <p className="mt-4 max-w-2xl font-headline text-lg md:text-2xl text-primary font-semibold">
-            CodingBeyondImagination
+          <p className="mt-4 max-w-2xl font-headline text-lg md:text-2xl text-primary-foreground/80 animate-fade-in-up animation-delay-300">
+            Coding Beyond Imagination
           </p>
-          <div className="mt-8 flex gap-4">
-            <Button asChild size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground transition-transform hover:scale-105">
+          <div className="mt-8 flex gap-4 animate-fade-in-up animation-delay-600">
+            <Button asChild size="lg" className="bg-primary text-primary-foreground transition-transform hover:scale-105">
               <Link href="/projects">View Projects</Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="border-primary text-primary hover:bg-primary/10 transition-transform hover:scale-105">
+            <Button asChild size="lg" variant="outline" className="border-primary-foreground/50 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground transition-transform hover:scale-105">
               <Link href="#contact">Get in Touch</Link>
             </Button>
           </div>
@@ -141,7 +141,7 @@ export default function Home() {
                     <Input type="email" placeholder="Email" />
                   </div>
                   <Textarea placeholder="Your message" rows={5} />
-                  <Button type="submit" size="lg" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">Send Message</Button>
+                  <Button type="submit" size="lg" className="w-full">Send Message</Button>
                 </form>
               </CardContent>
             </Card>
