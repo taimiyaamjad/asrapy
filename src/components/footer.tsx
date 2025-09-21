@@ -1,4 +1,4 @@
-import { Code, Github, Linkedin, Twitter } from "lucide-react";
+import { Code2, Github, Linkedin, Twitter } from "lucide-react";
 import Link from "next/link";
 
 export function Footer() {
@@ -6,7 +6,7 @@ export function Footer() {
     <footer className="border-t bg-background">
       <div className="container mx-auto flex flex-col items-center justify-between gap-4 px-4 py-8 sm:flex-row md:px-6">
         <div className="flex items-center gap-2">
-          <Code className="h-6 w-6 text-primary" />
+          <Code2 className="h-6 w-6 text-primary" />
           <span className="font-headline text-lg font-bold text-primary">AsraPy</span>
         </div>
         <p className="text-sm text-muted-foreground">

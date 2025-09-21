@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Menu, Code, X } from "lucide-react";
+import { Menu, Code2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetTitle } from "@/components/ui/sheet";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -20,7 +20,7 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
-          <Code className="h-7 w-7 text-primary" />
+          <Code2 className="h-7 w-7 text-primary" />
           <span className="font-headline text-xl font-bold text-foreground">AsraPy</span>
         </Link>
 
@@ -48,13 +48,10 @@ export function Header() {
             </SheetTrigger>
             <SheetContent side="right" className="w-full max-w-xs bg-background p-6">
               <SheetTitle className="sr-only">Menu</SheetTitle>
-              <SheetDescription className="sr-only">
-                Main navigation links for the website.
-              </SheetDescription>
               <div className="flex flex-col h-full">
                 <div className="flex items-center justify-between mb-8">
                   <Link href="/" className="flex items-center gap-2" onClick={() => setIsOpen(false)}>
-                    <Code className="h-7 w-7 text-primary" />
+                    <Code2 className="h-7 w-7 text-primary" />
                     <span className="font-headline text-xl font-bold text-foreground">AsraPy</span>
                   </Link>
                   <SheetClose asChild>
