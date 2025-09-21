@@ -1,6 +1,5 @@
 import { projectsData } from "@/lib/projects-data";
 import { ProjectsList } from "@/components/projects-list";
-import { LogoGenerator } from "@/components/logo-generator";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Github } from "lucide-react";
@@ -18,18 +17,6 @@ export default function ProjectsPage() {
       </div>
 
       <ProjectsList projects={projectsData} />
-
-      <div className="mt-24 text-center">
-        <h2 className="font-headline text-3xl md:text-4xl font-bold tracking-tight text-foreground">
-          Generate a Project Icon
-        </h2>
-        <p className="mt-4 max-w-2xl mx-auto text-muted-foreground">
-          Need an icon for your new idea? Describe your project and our AI will generate one for you.
-        </p>
-        <div className="mt-8">
-          <LogoGenerator />
-        </div>
-      </div>
       
       <div className="mt-24 text-center border-t pt-16">
         <h2 className="font-headline text-2xl md:text-3xl font-bold tracking-tight text-foreground">
