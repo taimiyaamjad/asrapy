@@ -46,8 +46,8 @@ interface Message {
     text: string;
     createdAt: Timestamp;
     userId: string;
-    displayName: string;
-    photoURL: string;
+    displayName: string | null;
+    photoURL: string | null;
 }
 
 export default function ChatPage() {
@@ -83,7 +83,7 @@ export default function ChatPage() {
       text: newMessage,
       createdAt: serverTimestamp(),
       userId: user.uid,
-      displayName: user.displayName,
+      displayName: user.displayName || user.email,
       photoURL: user.photoURL,
     });
 
@@ -189,10 +189,10 @@ export default function ChatPage() {
                     <>
                         <Avatar className="h-9 w-9">
                             <AvatarImage src={user.photoURL || ''} alt={user.displayName || 'user'} />
-                            <AvatarFallback>{user.displayName?.charAt(0)}</AvatarFallback>
+                            <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
                         </Avatar>
                         <div className="text-sm">
-                            <p className="font-semibold">{user.displayName}</p>
+                            <p className="font-semibold">{user.displayName || user.email}</p>
                             <p className="text-xs text-muted-foreground">Online</p>
                         </div>
                     </>
@@ -209,15 +209,17 @@ export default function ChatPage() {
                         This is the beginning of the #general channel.
                     </div>
                  ) : (
-                    messages.map(msg => (
+                    messages.map(msg => {
+                      const displayName = msg.displayName || 'User';
+                      return (
                         <div key={msg.id} className="flex items-start gap-3">
                             <Avatar className="h-9 w-9">
-                                <AvatarImage src={msg.photoURL} alt={msg.displayName} />
-                                <AvatarFallback>{msg.displayName.charAt(0)}</AvatarFallback>
+                                <AvatarImage src={msg.photoURL || ''} alt={displayName} />
+                                <AvatarFallback>{displayName.charAt(0)}</AvatarFallback>
                             </Avatar>
                             <div>
                                 <div className="flex items-center gap-2">
-                                    <p className="font-semibold">{msg.displayName}</p>
+                                    <p className="font-semibold">{displayName}</p>
                                     <p className="text-xs text-muted-foreground">
                                         {msg.createdAt ? format(msg.createdAt.toDate(), 'p') : ''}
                                     </p>
@@ -225,7 +227,8 @@ export default function ChatPage() {
                                 <p className="text-sm">{msg.text}</p>
                             </div>
                         </div>
-                    ))
+                      )
+                    })
                  )}
               </div>
             </ScrollArea>
