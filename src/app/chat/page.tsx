@@ -22,6 +22,7 @@ import {
   ShieldAlert,
   Paperclip,
   X,
+  Megaphone,
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
@@ -40,9 +41,12 @@ const projects = [
   { id: 'asra-tutor', name: 'Asra-Tutor', avatar: '/asra-tutor.png' },
 ];
 
-const channels = [
+const announcementChannels = [
+    { id: 'announcements', name: 'announcements', icon: <Megaphone className="h-4 w-4 text-muted-foreground" /> },
+];
+
+const textChannels = [
   { id: 'general', name: 'general', icon: <MessageSquare className="h-4 w-4 text-muted-foreground" /> },
-  { id: 'announcements', name: 'announcements', icon: <ShieldAlert className="h-4 w-4 text-muted-foreground" /> },
   { id: 'code-review', name: 'code-review', icon: <MessageSquare className="h-4 w-4 text-muted-foreground" /> },
   { id: 'bugs-issues', name: 'bugs-issues', icon: <MessageSquare className="h-4 w-4 text-muted-foreground" /> },
   { id: 'documentation', name: 'documentation', icon: <MessageSquare className="h-4 w-4 text-muted-foreground" /> },
@@ -256,19 +260,35 @@ export default function ChatPage() {
              <div className="p-4 border-b">
                 <h2 className="text-xl font-bold">AsraPy</h2>
              </div>
-             <ScrollArea className="flex-1 p-4">
-                <p className='text-sm font-semibold text-muted-foreground mb-2'>TEXT CHANNELS</p>
-                 {channels.map(channel => (
-                     <Button 
-                        key={channel.id} 
-                        variant={activeChannel === channel.id ? "secondary" : "ghost"} 
-                        className="w-full justify-start gap-2"
-                        onClick={() => setActiveChannel(channel.id)}
-                    >
-                         {channel.icon}
-                         {channel.name}
-                     </Button>
-                 ))}
+             <ScrollArea className="flex-1 p-4 space-y-4">
+                <div>
+                    <p className='text-sm font-semibold text-muted-foreground mb-2'>ANNOUNCEMENTS</p>
+                    {announcementChannels.map(channel => (
+                        <Button 
+                            key={channel.id} 
+                            variant={activeChannel === channel.id ? "secondary" : "ghost"} 
+                            className="w-full justify-start gap-2"
+                            onClick={() => setActiveChannel(channel.id)}
+                        >
+                            {channel.icon}
+                            {channel.name}
+                        </Button>
+                    ))}
+                </div>
+                <div>
+                    <p className='text-sm font-semibold text-muted-foreground mb-2'>TEXT CHANNELS</p>
+                    {textChannels.map(channel => (
+                        <Button 
+                            key={channel.id} 
+                            variant={activeChannel === channel.id ? "secondary" : "ghost"} 
+                            className="w-full justify-start gap-2"
+                            onClick={() => setActiveChannel(channel.id)}
+                        >
+                            {channel.icon}
+                            {channel.name}
+                        </Button>
+                    ))}
+                </div>
              </ScrollArea>
              <div className='p-2 border-t flex items-center gap-2'>
                 {user && (
@@ -382,19 +402,35 @@ export default function ChatPage() {
            <h2 className="text-xl font-bold">AsraPy</h2>
         </SidebarHeader>
         <SidebarContent>
-             <ScrollArea className="flex-1 p-4">
-                <p className='text-sm font-semibold text-muted-foreground mb-2'>TEXT CHANNELS</p>
-                 {channels.map(channel => (
-                     <Button 
-                        key={channel.id} 
-                        variant={activeChannel === channel.id ? "secondary" : "ghost"}
-                        className="w-full justify-start gap-2"
-                        onClick={() => setActiveChannel(channel.id)}
-                    >
-                         {channel.icon}
-                         {channel.name}
-                     </Button>
-                 ))}
+             <ScrollArea className="flex-1 p-4 space-y-4">
+                <div>
+                    <p className='text-sm font-semibold text-muted-foreground mb-2'>ANNOUNCEMENTS</p>
+                    {announcementChannels.map(channel => (
+                        <Button 
+                            key={channel.id} 
+                            variant={activeChannel === channel.id ? "secondary" : "ghost"} 
+                            className="w-full justify-start gap-2"
+                            onClick={() => setActiveChannel(channel.id)}
+                        >
+                            {channel.icon}
+                            {channel.name}
+                        </Button>
+                    ))}
+                </div>
+                <div>
+                    <p className='text-sm font-semibold text-muted-foreground mb-2'>TEXT CHANNELS</p>
+                    {textChannels.map(channel => (
+                        <Button 
+                            key={channel.id} 
+                            variant={activeChannel === channel.id ? "secondary" : "ghost"}
+                            className="w-full justify-start gap-2"
+                            onClick={() => setActiveChannel(channel.id)}
+                        >
+                            {channel.icon}
+                            {channel.name}
+                        </Button>
+                    ))}
+                </div>
              </ScrollArea>
         </SidebarContent>
       </Sidebar>
