@@ -37,9 +37,9 @@ import { Progress } from '@/components/ui/progress';
 import { SheetTitle } from '@/components/ui/sheet';
 
 const projects = [
-  { id: 'zenflow', name: 'ZenFlow', avatar: '/zenflow.png' },
+  { id: 'asrapy', name: 'AsraPy', avatar: '/asra-tutor.png' },
   { id: 'zencloud', name: 'ZenCloud', avatar: '/zencloud.png' },
-  { id: 'asra-tutor', name: 'Asra-Tutor', avatar: '/asra-tutor.png' },
+  { id: 'zenflow', name: 'ZenFlow', avatar: '/zenflow.png' },
 ];
 
 const announcementChannels = [
