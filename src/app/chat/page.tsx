@@ -211,10 +211,11 @@ export default function ChatPage() {
                  ) : (
                     messages.map(msg => {
                       const displayName = msg.displayName || 'User';
+                      const photoURL = msg.photoURL || '';
                       return (
                         <div key={msg.id} className="flex items-start gap-3">
                             <Avatar className="h-9 w-9">
-                                <AvatarImage src={msg.photoURL || ''} alt={displayName} />
+                                <AvatarImage src={photoURL} alt={displayName} />
                                 <AvatarFallback>{displayName.charAt(0)}</AvatarFallback>
                             </Avatar>
                             <div>
@@ -232,7 +233,8 @@ export default function ChatPage() {
                  )}
               </div>
             </ScrollArea>
-            <div className="border-t p-4">
+            <div className="border-t px-4 py-2">
+              <div className="max-w-4xl mx-auto">
                 <form onSubmit={handleSendMessage} className="relative">
                     <Input 
                         placeholder="Message #general" 
@@ -244,6 +246,7 @@ export default function ChatPage() {
                         <Send className="h-4 w-4" />
                     </Button>
                 </form>
+              </div>
             </div>
           </div>
         </main>
