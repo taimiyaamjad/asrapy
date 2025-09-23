@@ -173,7 +173,7 @@ export default function ChatPage() {
           {/* Channel List */}
           <div className="hidden md:flex flex-col w-64 border-r">
              <div className="p-4 border-b">
-                <h2 className="text-xl font-bold">ZenFlow</h2>
+                <h2 className="text-xl font-bold">AsraPy</h2>
              </div>
              <ScrollArea className="flex-1 p-4">
                 <p className='text-sm font-semibold text-muted-foreground mb-2'>TEXT CHANNELS</p>
@@ -249,7 +249,7 @@ export default function ChatPage() {
        {/* Mobile Sidebar (for channels) */}
       <Sidebar side="left" collapsible="offcanvas" className='md:hidden'>
         <SidebarHeader>
-           <h2 className="text-xl font-bold">ZenFlow</h2>
+           <h2 className="text-xl font-bold">AsraPy</h2>
         </SidebarHeader>
         <SidebarContent>
              <ScrollArea className="flex-1 p-4">
@@ -266,5 +266,3 @@ export default function ChatPage() {
     </>
   );
 }
-
-    
