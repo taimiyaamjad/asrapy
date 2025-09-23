@@ -253,48 +253,6 @@ export default function ChatPage() {
 
   return (
     <>
-      {/* Project Workspace Sidebar */}
-      <Sidebar
-        collapsible="icon"
-        className="w-20 bg-background/30 backdrop-blur-sm border-r"
-      >
-        <SidebarContent className="p-2 flex flex-col items-center">
-          <SidebarMenu className="flex-grow">
-            {projects.map((project) => (
-              <SidebarMenuItem key={project.id}>
-                <SidebarMenuButton
-                  tooltip={{
-                    children: project.name,
-                    side: 'right',
-                    align: 'center',
-                  }}
-                  className="!size-12 rounded-full"
-                >
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src={project.avatar} />
-                    <AvatarFallback>{project.name.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                  tooltip={{
-                    children: 'Settings',
-                    side: 'right',
-                    align: 'center',
-                  }}
-                  className="!size-12 rounded-full"
-              >
-                <Settings />
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarContent>
-      </Sidebar>
-
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col bg-background/80">
         <header className="flex h-16 items-center justify-between border-b px-4 md:px-6">
@@ -470,9 +428,9 @@ export default function ChatPage() {
        {/* Mobile Sidebar (for channels) */}
       <Sidebar side="left" collapsible="offcanvas" className='md:hidden'>
         <SidebarHeader>
-           <SheetTitle className="sr-only">Channels and direct messages</SheetTitle>
            <h2 className="text-xl font-bold">AsraPy</h2>
         </SidebarHeader>
+        <SheetTitle className="sr-only">Channels and direct messages</SheetTitle>
         <SidebarContent>
              <ScrollArea className="flex-1 p-4 space-y-4">
                 <div>
