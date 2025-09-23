@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Menu, CodeSquare, X, LogIn, LogOut, User as UserIcon } from "lucide-react";
+import { Menu, Code2, X, LogIn, LogOut, User as UserIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetTitle } from "@/components/ui/sheet";
 import { useAuth } from "@/context/auth-context";
@@ -81,7 +81,7 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
-          <CodeSquare className="h-7 w-7 text-primary" />
+          <Code2 className="h-7 w-7 text-primary" />
           <span className="font-headline text-xl font-bold text-foreground">AsraPy</span>
         </Link>
 
@@ -117,7 +117,7 @@ export function Header() {
               <div className="flex flex-col h-full">
                 <div className="flex items-center justify-between mb-8">
                   <Link href="/" className="flex items-center gap-2" onClick={() => setIsOpen(false)}>
-                    <CodeSquare className="h-7 w-7 text-primary" />
+                    <Code2 className="h-7 w-7 text-primary" />
                     <span className="font-headline text-xl font-bold text-foreground">AsraPy</span>
                   </Link>
                   <SheetClose asChild>
