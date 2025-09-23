@@ -5,7 +5,8 @@ import { Github, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { auth, googleAuthProvider } from "@/lib/firebase";
+import { auth, db, googleAuthProvider } from "@/lib/firebase";
+import { doc, setDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { useEffect } from "react";
@@ -57,7 +58,16 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     try {
-      await signInWithPopup(auth, googleAuthProvider);
+      const result = await signInWithPopup(auth, googleAuthProvider);
+      const user = result.user;
+       // Create a user document in Firestore
+      await setDoc(doc(db, "users", user.uid), {
+        uid: user.uid,
+        displayName: user.displayName,
+        email: user.email,
+        photoURL: user.photoURL,
+        role: 'member' // Default role
+      }, { merge: true }); // Merge to avoid overwriting existing data if user logs in again
       router.push("/chat");
     } catch (error) {
       console.error("Google login error:", error);
@@ -80,8 +90,16 @@ export default function LoginPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const user = userCredential.user;
       await updateProfile(user, { displayName: values.username });
-      // Manually trigger a state update in AuthProvider or reload user
-      // This is a simplified approach, a more robust solution might involve a global state refresh
+
+      // Create a user document in Firestore
+      await setDoc(doc(db, "users", user.uid), {
+        uid: user.uid,
+        displayName: values.username,
+        email: user.email,
+        photoURL: user.photoURL,
+        role: 'member' // Default role
+      });
+
       router.push("/chat");
       router.refresh(); // To reflect updated user info
     } catch (error: any) {
@@ -227,5 +245,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    
