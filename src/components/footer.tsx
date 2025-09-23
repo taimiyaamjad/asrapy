@@ -1,4 +1,4 @@
-import { Code2, Github, Linkedin, Twitter } from "lucide-react";
+import { Code2, Github, Linkedin, Twitter, MessageSquare } from "lucide-react";
 import Link from "next/link";
 
 export function Footer() {
@@ -21,6 +21,9 @@ export function Footer() {
           </Link>
           <Link href="#" aria-label="LinkedIn">
             <Linkedin className="h-5 w-5 text-muted-foreground transition-colors hover:text-primary" />
+          </Link>
+          <Link href="#" aria-label="Discord">
+            <MessageSquare className="h-5 w-5 text-muted-foreground transition-colors hover:text-primary" />
           </Link>
         </div>
       </div>
