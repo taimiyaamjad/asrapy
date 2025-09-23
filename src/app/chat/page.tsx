@@ -34,7 +34,6 @@ import { useToast } from '@/hooks/use-toast';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
-import { SheetTitle } from '@/components/ui/sheet';
 
 const projects = [
   { id: 'asrapy', name: 'AsraPy', avatar: '/asra-tutor.png' },
@@ -427,7 +426,6 @@ export default function ChatPage() {
 
        {/* Mobile Sidebar (for channels) */}
       <Sidebar side="left" collapsible="offcanvas" className='md:hidden'>
-        <SheetTitle className="sr-only">Channels and direct messages</SheetTitle>
         <SidebarHeader>
            <h2 className="text-xl font-bold">AsraPy</h2>
         </SidebarHeader>
