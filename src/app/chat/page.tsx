@@ -27,7 +27,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { FormEvent, useEffect, useRef, useState } from 'react';
-import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, Timestamp, doc, getDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, Timestamp, doc, getDoc, getDocs } from 'firebase/firestore';
 import { db, storage } from '@/lib/firebase';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -64,7 +64,17 @@ interface Message {
 }
 
 interface UserProfile {
+    uid: string;
+    displayName: string;
+    email: string;
+    photoURL: string | null;
     role: 'admin' | 'member';
+}
+
+interface ActiveChannelInfo {
+    id: string;
+    name: string;
+    type: 'channel' | 'dm';
 }
 
 export default function ChatPage() {
@@ -75,8 +85,9 @@ export default function ChatPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [activeChannel, setActiveChannel] = useState('general');
+  const [activeChannel, setActiveChannel] = useState<ActiveChannelInfo>({ id: 'general', name: 'general', type: 'channel' });
   const [userRole, setUserRole] = useState<'admin' | 'member'>('member');
+  const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -84,20 +95,42 @@ export default function ChatPage() {
     useEffect(() => {
         if (!user) return;
         
+        // Fetch user role
         const userDocRef = doc(db, 'users', user.uid);
-        getDoc(userDocRef).then(docSnap => {
+        const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
             if (docSnap.exists() && docSnap.data().role) {
                 setUserRole(docSnap.data().role);
             }
         });
 
-        const q = query(collection(db, 'channels', activeChannel, 'messages'), orderBy('createdAt', 'asc'));
-        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        // Fetch all users for DM list
+        const usersCollectionRef = collection(db, 'users');
+        const unsubscribeUsers = onSnapshot(usersCollectionRef, (querySnapshot) => {
+            const usersList = querySnapshot.docs
+                .map(doc => doc.data() as UserProfile)
+                .filter(u => u.uid !== user.uid); // Exclude current user
+            setAllUsers(usersList);
+        });
+        
+        // Subscribe to messages for the active channel/DM
+        const collectionPath = activeChannel.type === 'channel' 
+            ? ['channels', activeChannel.id, 'messages'] 
+            : ['dms', activeChannel.id, 'messages'];
+
+        const q = query(collection(db, ...collectionPath), orderBy('createdAt', 'asc'));
+        const unsubscribeMessages = onSnapshot(q, (querySnapshot) => {
             const msgs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Message));
             setMessages(msgs);
+        }, (error) => {
+             console.error("Error fetching messages:", error);
+             setMessages([]); // Clear messages on error
         });
 
-        return () => unsubscribe();
+        return () => {
+            unsubscribeUser();
+            unsubscribeUsers();
+            unsubscribeMessages();
+        };
     }, [user, activeChannel]);
 
     useEffect(() => {
@@ -130,7 +163,7 @@ export default function ChatPage() {
     e.preventDefault();
     if ((!newMessage.trim() && !imageFile) || !user) return;
 
-    if (activeChannel === 'announcements' && userRole !== 'admin') {
+    if (activeChannel.type === 'channel' && activeChannel.id === 'announcements' && userRole !== 'admin') {
       toast({
         variant: 'destructive',
         title: 'Permission Denied',
@@ -143,9 +176,10 @@ export default function ChatPage() {
     setUploadProgress(0);
 
     let imageUrl: string | null = null;
+    const uploadPath = activeChannel.type === 'channel' ? `chat_images/${activeChannel.id}` : `dm_images/${activeChannel.id}`;
 
     if (imageFile) {
-        const storageRef = ref(storage, `chat_images/${activeChannel}/${Date.now()}_${imageFile.name}`);
+        const storageRef = ref(storage, `${uploadPath}/${Date.now()}_${imageFile.name}`);
         try {
             const snapshot = await uploadBytes(storageRef, imageFile);
             imageUrl = await getDownloadURL(snapshot.ref);
@@ -158,8 +192,12 @@ export default function ChatPage() {
             return;
         }
     }
+    
+    const collectionPath = activeChannel.type === 'channel' 
+        ? ['channels', activeChannel.id, 'messages']
+        : ['dms', activeChannel.id, 'messages'];
 
-    await addDoc(collection(db, 'channels', activeChannel, 'messages'), {
+    await addDoc(collection(db, ...collectionPath), {
       text: newMessage.trim() || null,
       imageUrl: imageUrl,
       createdAt: serverTimestamp(),
@@ -171,6 +209,17 @@ export default function ChatPage() {
     setNewMessage('');
     clearImagePreview();
     setIsUploading(false);
+  };
+  
+  const handleChannelSelect = (id: string, name: string) => {
+      setActiveChannel({ id, name, type: 'channel' });
+  };
+
+  const handleDMSelect = (peer: UserProfile) => {
+      if (!user) return;
+      // Create a consistent channel ID for the two users
+      const dmChannelId = [user.uid, peer.uid].sort().join('_');
+      setActiveChannel({ id: dmChannelId, name: peer.displayName, type: 'dm' });
   };
 
 
@@ -196,7 +245,10 @@ export default function ChatPage() {
     );
   }
 
-  const canPost = activeChannel !== 'announcements' || userRole === 'admin';
+  const canPost = activeChannel.type === 'dm' || (activeChannel.id !== 'announcements' || userRole === 'admin');
+  const placeholderText = canPost 
+    ? (activeChannel.type === 'channel' ? `Message #${activeChannel.name}` : `Message ${activeChannel.name}`)
+    : `You cannot post in #${activeChannel.name}`;
 
   return (
     <>
@@ -248,7 +300,8 @@ export default function ChatPage() {
           <div className='flex items-center gap-4'>
             <SidebarTrigger className="md:hidden" />
             <h2 className="text-lg font-semibold">
-              <span className="text-muted-foreground">#</span> {activeChannel}
+              {activeChannel.type === 'channel' && <span className="text-muted-foreground">#</span>}
+              {activeChannel.name}
             </h2>
           </div>
           <div>{/* Header Actions */}</div>
@@ -262,13 +315,13 @@ export default function ChatPage() {
              </div>
              <ScrollArea className="flex-1 p-4 space-y-4">
                 <div>
-                    <p className='text-sm font-semibold text-muted-foreground mb-2'>ANNOUNCEMENTS</p>
+                    <p className='text-sm font-semibold text-muted-foreground mb-2 px-2'>ANNOUNCEMENTS</p>
                     {announcementChannels.map(channel => (
                         <Button 
                             key={channel.id} 
-                            variant={activeChannel === channel.id ? "secondary" : "ghost"} 
+                            variant={activeChannel.id === channel.id ? "secondary" : "ghost"} 
                             className="w-full justify-start gap-2"
-                            onClick={() => setActiveChannel(channel.id)}
+                            onClick={() => handleChannelSelect(channel.id, channel.name)}
                         >
                             {channel.icon}
                             {channel.name}
@@ -276,16 +329,33 @@ export default function ChatPage() {
                     ))}
                 </div>
                 <div>
-                    <p className='text-sm font-semibold text-muted-foreground mb-2'>TEXT CHANNELS</p>
+                    <p className='text-sm font-semibold text-muted-foreground mb-2 px-2'>TEXT CHANNELS</p>
                     {textChannels.map(channel => (
                         <Button 
                             key={channel.id} 
-                            variant={activeChannel === channel.id ? "secondary" : "ghost"} 
+                            variant={activeChannel.id === channel.id ? "secondary" : "ghost"} 
                             className="w-full justify-start gap-2"
-                            onClick={() => setActiveChannel(channel.id)}
+                            onClick={() => handleChannelSelect(channel.id, channel.name)}
                         >
                             {channel.icon}
                             {channel.name}
+                        </Button>
+                    ))}
+                </div>
+                 <div>
+                    <p className='text-sm font-semibold text-muted-foreground mb-2 px-2'>DIRECT MESSAGES</p>
+                    {allUsers.map(dmUser => (
+                        <Button 
+                            key={dmUser.uid} 
+                            variant={activeChannel.type === 'dm' && activeChannel.name === dmUser.displayName ? "secondary" : "ghost"} 
+                            className="w-full justify-start gap-2"
+                            onClick={() => handleDMSelect(dmUser)}
+                        >
+                            <Avatar className="h-6 w-6">
+                                <AvatarImage src={dmUser.photoURL || undefined} alt={dmUser.displayName} />
+                                <AvatarFallback>{(dmUser.displayName || 'U').charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            {dmUser.displayName}
                         </Button>
                     ))}
                 </div>
@@ -312,7 +382,7 @@ export default function ChatPage() {
               <div className="flex flex-col gap-4">
                  {messages.length === 0 ? (
                     <div className="text-center text-muted-foreground mt-8">
-                        This is the beginning of the #{activeChannel} channel.
+                        This is the beginning of your conversation.
                     </div>
                  ) : (
                     messages.map(msg => {
@@ -373,7 +443,7 @@ export default function ChatPage() {
                       <Paperclip className="h-4 w-4" />
                     </Button>
                     <Input 
-                        placeholder={canPost ? `Message #${activeChannel}` : `You cannot post in #${activeChannel}`}
+                        placeholder={placeholderText}
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
                         className="pl-12 pr-12"
@@ -408,9 +478,9 @@ export default function ChatPage() {
                     {announcementChannels.map(channel => (
                         <Button 
                             key={channel.id} 
-                            variant={activeChannel === channel.id ? "secondary" : "ghost"} 
+                            variant={activeChannel.id === channel.id ? "secondary" : "ghost"} 
                             className="w-full justify-start gap-2"
-                            onClick={() => setActiveChannel(channel.id)}
+                            onClick={() => handleChannelSelect(channel.id, channel.name)}
                         >
                             {channel.icon}
                             {channel.name}
@@ -422,12 +492,29 @@ export default function ChatPage() {
                     {textChannels.map(channel => (
                         <Button 
                             key={channel.id} 
-                            variant={activeChannel === channel.id ? "secondary" : "ghost"}
+                            variant={activeChannel.id === channel.id ? "secondary" : "ghost"}
                             className="w-full justify-start gap-2"
-                            onClick={() => setActiveChannel(channel.id)}
+                             onClick={() => handleChannelSelect(channel.id, channel.name)}
                         >
                             {channel.icon}
                             {channel.name}
+                        </Button>
+                    ))}
+                </div>
+                 <div>
+                    <p className='text-sm font-semibold text-muted-foreground mb-2'>DIRECT MESSAGES</p>
+                    {allUsers.map(dmUser => (
+                        <Button 
+                            key={dmUser.uid} 
+                            variant={activeChannel.type === 'dm' && activeChannel.name === dmUser.displayName ? "secondary" : "ghost"} 
+                            className="w-full justify-start gap-2"
+                            onClick={() => handleDMSelect(dmUser)}
+                        >
+                             <Avatar className="h-6 w-6">
+                                <AvatarImage src={dmUser.photoURL || undefined} alt={dmUser.displayName} />
+                                <AvatarFallback>{(dmUser.displayName || 'U').charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            {dmUser.displayName}
                         </Button>
                     ))}
                 </div>
