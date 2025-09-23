@@ -12,22 +12,20 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarInset,
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
-  FileText,
-  Github,
-  Home,
   MessageSquare,
-  Package,
   PanelLeft,
+  Send,
   Settings,
-  Users,
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
+import { FormEvent, useEffect, useRef, useState } from 'react';
+import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, Timestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { format } from 'date-fns';
 
 const projects = [
   { id: 'zenflow', name: 'ZenFlow', avatar: '/zenflow.png' },
@@ -43,8 +41,55 @@ const channels = [
   { id: 'off-topic', name: 'off-topic' },
 ];
 
+interface Message {
+    id: string;
+    text: string;
+    createdAt: Timestamp;
+    userId: string;
+    displayName: string;
+    photoURL: string;
+}
+
 export default function ChatPage() {
   const { user, loading } = useAuth();
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [newMessage, setNewMessage] = useState('');
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!user) return;
+        const q = query(collection(db, 'messages'), orderBy('createdAt', 'asc'));
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+            const msgs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Message));
+            setMessages(msgs);
+        });
+
+        return () => unsubscribe();
+    }, [user]);
+
+    useEffect(() => {
+        // Auto-scroll to bottom
+        if (scrollAreaRef.current) {
+            scrollAreaRef.current.scrollTo({ top: scrollAreaRef.current.scrollHeight });
+        }
+    }, [messages]);
+
+
+  const handleSendMessage = async (e: FormEvent) => {
+    e.preventDefault();
+    if (newMessage.trim() === '' || !user) return;
+
+    await addDoc(collection(db, 'messages'), {
+      text: newMessage,
+      createdAt: serverTimestamp(),
+      userId: user.uid,
+      displayName: user.displayName,
+      photoURL: user.photoURL,
+    });
+
+    setNewMessage('');
+  };
+
 
   if (loading) {
     return (
@@ -157,13 +202,45 @@ export default function ChatPage() {
 
           {/* Chat Messages */}
           <div className="flex-1 flex flex-col">
-            <div className="flex-1 p-6 overflow-y-auto">
-              <div className="text-center text-muted-foreground">
-                This is the beginning of the #general channel.
+            <ScrollArea className="flex-1 p-6" ref={scrollAreaRef}>
+              <div className="flex flex-col gap-4">
+                 {messages.length === 0 ? (
+                    <div className="text-center text-muted-foreground mt-8">
+                        This is the beginning of the #general channel.
+                    </div>
+                 ) : (
+                    messages.map(msg => (
+                        <div key={msg.id} className="flex items-start gap-3">
+                            <Avatar className="h-9 w-9">
+                                <AvatarImage src={msg.photoURL} alt={msg.displayName} />
+                                <AvatarFallback>{msg.displayName.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <p className="font-semibold">{msg.displayName}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                        {msg.createdAt ? format(msg.createdAt.toDate(), 'p') : ''}
+                                    </p>
+                                </div>
+                                <p className="text-sm">{msg.text}</p>
+                            </div>
+                        </div>
+                    ))
+                 )}
               </div>
-            </div>
+            </ScrollArea>
             <div className="border-t p-4">
-              <Input placeholder="Message #general" />
+                <form onSubmit={handleSendMessage} className="relative">
+                    <Input 
+                        placeholder="Message #general" 
+                        value={newMessage}
+                        onChange={(e) => setNewMessage(e.target.value)}
+                        className="pr-12"
+                    />
+                    <Button type="submit" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-10">
+                        <Send className="h-4 w-4" />
+                    </Button>
+                </form>
             </div>
           </div>
         </main>
@@ -189,3 +266,5 @@ export default function ChatPage() {
     </>
   );
 }
+
+    
