@@ -429,8 +429,8 @@ export default function ChatPage() {
       <Sidebar side="left" collapsible="offcanvas" className='md:hidden'>
         <SidebarHeader>
            <h2 className="text-xl font-bold">AsraPy</h2>
+           <SheetTitle className="sr-only">Channels and direct messages</SheetTitle>
         </SidebarHeader>
-        <SheetTitle className="sr-only">Channels and direct messages</SheetTitle>
         <SidebarContent>
              <ScrollArea className="flex-1 p-4 space-y-4">
                 <div>
