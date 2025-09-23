@@ -20,14 +20,19 @@ import {
   Send,
   Settings,
   ShieldAlert,
+  Paperclip,
+  X,
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, Timestamp, doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { db, storage } from '@/lib/firebase';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
+import Image from 'next/image';
+import { Progress } from '@/components/ui/progress';
 
 const projects = [
   { id: 'zenflow', name: 'ZenFlow', avatar: '/zenflow.png' },
@@ -46,7 +51,8 @@ const channels = [
 
 interface Message {
     id: string;
-    text: string;
+    text: string | null;
+    imageUrl: string | null;
     createdAt: Timestamp;
     userId: string;
     displayName: string | null;
@@ -61,15 +67,19 @@ export default function ChatPage() {
   const { user, loading } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [activeChannel, setActiveChannel] = useState('general');
   const [userRole, setUserRole] = useState<'admin' | 'member'>('member');
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
     useEffect(() => {
         if (!user) return;
         
-        // Fetch user role
         const userDocRef = doc(db, 'users', user.uid);
         getDoc(userDocRef).then(docSnap => {
             if (docSnap.exists() && docSnap.data().role) {
@@ -87,16 +97,34 @@ export default function ChatPage() {
     }, [user, activeChannel]);
 
     useEffect(() => {
-        // Auto-scroll to bottom
         if (scrollAreaRef.current) {
             scrollAreaRef.current.scrollTo({ top: scrollAreaRef.current.scrollHeight });
         }
     }, [messages]);
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const clearImagePreview = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    if(fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
   const handleSendMessage = async (e: FormEvent) => {
     e.preventDefault();
-    if (newMessage.trim() === '' || !user) return;
+    if ((!newMessage.trim() && !imageFile) || !user) return;
 
     if (activeChannel === 'announcements' && userRole !== 'admin') {
       toast({
@@ -107,8 +135,29 @@ export default function ChatPage() {
       return;
     }
 
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    let imageUrl: string | null = null;
+
+    if (imageFile) {
+        const storageRef = ref(storage, `chat_images/${activeChannel}/${Date.now()}_${imageFile.name}`);
+        try {
+            const snapshot = await uploadBytes(storageRef, imageFile);
+            imageUrl = await getDownloadURL(snapshot.ref);
+             // Simulate progress for now as uploadBytes does not provide it
+            setUploadProgress(100);
+        } catch (error) {
+            console.error("Image upload error:", error);
+            toast({ variant: "destructive", title: "Upload Failed", description: "Could not upload the image." });
+            setIsUploading(false);
+            return;
+        }
+    }
+
     await addDoc(collection(db, 'channels', activeChannel, 'messages'), {
-      text: newMessage,
+      text: newMessage.trim() || null,
+      imageUrl: imageUrl,
       createdAt: serverTimestamp(),
       userId: user.uid,
       displayName: user.displayName || user.email,
@@ -116,6 +165,8 @@ export default function ChatPage() {
     });
 
     setNewMessage('');
+    clearImagePreview();
+    setIsUploading(false);
   };
 
 
@@ -261,7 +312,12 @@ export default function ChatPage() {
                                         {msg.createdAt ? format(msg.createdAt.toDate(), 'p') : ''}
                                     </p>
                                 </div>
-                                <p className="text-sm">{msg.text}</p>
+                                {msg.text && <p className="text-sm">{msg.text}</p>}
+                                {msg.imageUrl && (
+                                    <div className="mt-2">
+                                        <Image src={msg.imageUrl} alt="Uploaded image" width={300} height={200} className="rounded-md object-cover" />
+                                    </div>
+                                )}
                             </div>
                         </div>
                       )
@@ -271,15 +327,46 @@ export default function ChatPage() {
             </ScrollArea>
             <div className="border-t p-4 flex justify-center">
               <div className="w-full max-w-4xl">
+                 {imagePreview && (
+                  <div className="relative mb-2 w-fit">
+                    <Image src={imagePreview} alt="Preview" width={100} height={100} className="rounded-md object-cover" />
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                      onClick={clearImagePreview}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+                {isUploading && <Progress value={uploadProgress} className="w-full h-2 mb-2" />}
                 <form onSubmit={handleSendMessage} className="relative">
+                    <Button 
+                      type="button" 
+                      size="icon" 
+                      variant="ghost" 
+                      className="absolute left-1 top-1/2 -translate-y-1/2 h-8 w-10"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={!canPost || isUploading}
+                    >
+                      <Paperclip className="h-4 w-4" />
+                    </Button>
                     <Input 
                         placeholder={canPost ? `Message #${activeChannel}` : `You cannot post in #${activeChannel}`}
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
-                        className="pr-12"
-                        disabled={!canPost}
+                        className="pl-12 pr-12"
+                        disabled={!canPost || isUploading}
                     />
-                    <Button type="submit" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-10" disabled={!canPost}>
+                     <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleImageSelect}
+                        className="hidden"
+                        accept="image/*"
+                     />
+                    <Button type="submit" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-10" disabled={!canPost || isUploading || (!newMessage.trim() && !imageFile)}>
                         <Send className="h-4 w-4" />
                     </Button>
                 </form>
