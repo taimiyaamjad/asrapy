@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth, db, googleAuthProvider } from "@/lib/firebase";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { useEffect } from "react";
@@ -66,7 +66,9 @@ export default function LoginPage() {
         displayName: user.displayName,
         email: user.email,
         photoURL: user.photoURL,
-        role: 'member' // Default role
+        role: 'member', // Default role
+        displayNameLastChanged: serverTimestamp(),
+        displayNameChangeCount: 0,
       }, { merge: true }); // Merge to avoid overwriting existing data if user logs in again
       router.push("/chat");
     } catch (error) {
@@ -97,7 +99,9 @@ export default function LoginPage() {
         displayName: values.username,
         email: user.email,
         photoURL: user.photoURL,
-        role: 'member' // Default role
+        role: 'member', // Default role
+        displayNameLastChanged: serverTimestamp(),
+        displayNameChangeCount: 0,
       });
 
       router.push("/chat");
