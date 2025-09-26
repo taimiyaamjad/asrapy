@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
-import { db, storage, auth } from '@/lib/firebase';
+import { db, storage, auth } from '@/lib/firebase/client';
 import { doc, updateDoc, getDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { updateProfile } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';

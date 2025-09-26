@@ -5,8 +5,8 @@ import { Github, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { auth, db, googleAuthProvider } from "@/lib/firebase";
-import { doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { auth, db, googleAuthProvider } from "@/lib/firebase/client";
+import { doc, serverTimestamp, setDoc, getDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { useEffect } from "react";
@@ -67,8 +67,8 @@ export default function LoginPage() {
         email: user.email,
         photoURL: user.photoURL,
         role: 'member', // Default role
-        displayNameLastChanged: serverTimestamp(),
-        displayNameChangeCount: 0,
+        isBanned: false,
+        timeoutUntil: null,
       }, { merge: true }); // Merge to avoid overwriting existing data if user logs in again
       router.push("/chat");
     } catch (error) {
@@ -79,7 +79,22 @@ export default function LoginPage() {
 
   const handleEmailLogin = async (values: z.infer<typeof loginSchema>) => {
     try {
-      await signInWithEmailAndPassword(auth, values.email, values.password);
+      const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
+      const user = userCredential.user;
+
+      // Check if user is banned
+      const userDocRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userDocRef);
+      if (userDoc.exists() && userDoc.data().isBanned) {
+        await auth.signOut(); // Log them out immediately
+        toast({
+          variant: 'destructive',
+          title: 'Login Failed',
+          description: 'This account has been banned.',
+        });
+        return;
+      }
+      
       router.push("/chat");
     } catch (error) {
       console.error("Email login error:", error);
@@ -100,8 +115,8 @@ export default function LoginPage() {
         email: user.email,
         photoURL: user.photoURL,
         role: 'member', // Default role
-        displayNameLastChanged: serverTimestamp(),
-        displayNameChangeCount: 0,
+        isBanned: false,
+        timeoutUntil: null,
       });
 
       router.push("/chat");

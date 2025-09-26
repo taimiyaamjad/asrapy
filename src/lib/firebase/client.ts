@@ -12,7 +12,7 @@ const firebaseConfig = {
   storageBucket: "studio-3957723972-abda9.appspot.com",
 };
 
-// Initialize Firebase
+// Client-side Firebase app
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
 export const auth = getAuth(app);

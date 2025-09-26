@@ -9,31 +9,35 @@ import {
   SidebarContent,
   SidebarHeader,
   SidebarTrigger,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   MessageSquare,
-  PanelLeft,
   Send,
-  Settings,
-  ShieldAlert,
   Paperclip,
   X,
   Megaphone,
+  Ban,
+  Clock,
+  MoreVertical,
+  ShieldOff,
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, Timestamp, doc, getDoc, getDocs } from 'firebase/firestore';
-import { db, storage } from '@/lib/firebase';
-import { format } from 'date-fns';
+import { db, storage, auth } from '@/lib/firebase/client';
+import { format, formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
+import { banUser, timeoutUser, unbanUser } from '../actions';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 const projects = [
   { id: 'asrapy', name: 'AsraPy', avatar: '/asra-tutor.png' },
@@ -69,6 +73,8 @@ interface UserProfile {
     email: string;
     photoURL: string | null;
     role: 'admin' | 'member';
+    isBanned?: boolean;
+    timeoutUntil?: Timestamp | null;
 }
 
 interface ActiveChannelInfo {
@@ -86,7 +92,7 @@ export default function ChatPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [activeChannel, setActiveChannel] = useState<ActiveChannelInfo>({ id: 'general', name: 'general', type: 'channel' });
-  const [userRole, setUserRole] = useState<'admin' | 'member'>('member');
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -95,19 +101,19 @@ export default function ChatPage() {
     useEffect(() => {
         if (!user) return;
         
-        // Fetch user role
+        // Fetch user profile for role and moderation status
         const userDocRef = doc(db, 'users', user.uid);
         const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
-            if (docSnap.exists() && docSnap.data().role) {
-                setUserRole(docSnap.data().role);
+            if (docSnap.exists()) {
+                setUserProfile(docSnap.data() as UserProfile);
             }
         });
 
         // Fetch all users for DM list
         const usersCollectionRef = collection(db, 'users');
-        const unsubscribeUsers = onSnapshot(usersCollectionRef, (querySnapshot) => {
+        getDocs(usersCollectionRef).then(querySnapshot => {
             const usersList = querySnapshot.docs
-                .map(doc => doc.data() as UserProfile)
+                .map(doc => ({...doc.data(), uid: doc.id} as UserProfile))
                 .filter(u => u.uid !== user.uid); // Exclude current user
             setAllUsers(usersList);
         });
@@ -128,7 +134,6 @@ export default function ChatPage() {
 
         return () => {
             unsubscribeUser();
-            unsubscribeUsers();
             unsubscribeMessages();
         };
     }, [user, activeChannel]);
@@ -161,9 +166,20 @@ export default function ChatPage() {
 
   const handleSendMessage = async (e: FormEvent) => {
     e.preventDefault();
-    if ((!newMessage.trim() && !imageFile) || !user) return;
+    if ((!newMessage.trim() && !imageFile) || !user || !userProfile) return;
 
-    if (activeChannel.type === 'channel' && activeChannel.id === 'announcements' && userRole !== 'admin') {
+    // Check for ban or timeout
+    if (userProfile.isBanned) {
+        toast({ variant: 'destructive', title: 'Action Failed', description: 'You are banned and cannot send messages.' });
+        return;
+    }
+    if (userProfile.timeoutUntil && userProfile.timeoutUntil.toDate() > new Date()) {
+        const timeLeft = formatDistanceToNow(userProfile.timeoutUntil.toDate(), { addSuffix: true });
+        toast({ variant: 'destructive', title: 'Action Failed', description: `You are in a timeout. You can send messages again ${timeLeft}.` });
+        return;
+    }
+
+    if (activeChannel.type === 'channel' && activeChannel.id === 'announcements' && userProfile.role !== 'admin') {
       toast({
         variant: 'destructive',
         title: 'Permission Denied',
@@ -221,6 +237,30 @@ export default function ChatPage() {
       const dmChannelId = [user.uid, peer.uid].sort().join('_');
       setActiveChannel({ id: dmChannelId, name: peer.displayName, type: 'dm' });
   };
+  
+  const handleModerationAction = async (action: 'ban' | 'timeout' | 'unban', targetUserId: string, duration?: number) => {
+    try {
+        const idToken = await auth.currentUser?.getIdToken();
+        if (!idToken) throw new Error("Not authenticated");
+        
+        let result;
+        if (action === 'ban') {
+            result = await banUser(targetUserId);
+        } else if (action === 'timeout' && duration) {
+            result = await timeoutUser(targetUserId, duration);
+        } else if (action === 'unban') {
+            result = await unbanUser(targetUserId);
+        }
+
+        if (result?.success) {
+            toast({ title: "Success", description: result.message });
+        } else {
+            throw new Error(result?.message || 'An unknown error occurred.');
+        }
+    } catch (error: any) {
+        toast({ variant: "destructive", title: "Moderation Failed", description: error.message });
+    }
+  };
 
 
   if (loading) {
@@ -245,7 +285,7 @@ export default function ChatPage() {
     );
   }
 
-  const canPost = activeChannel.type === 'dm' || (activeChannel.id !== 'announcements' || userRole === 'admin');
+  const canPost = activeChannel.type === 'dm' || (activeChannel.id !== 'announcements' || userProfile?.role === 'admin');
   const placeholderText = canPost 
     ? (activeChannel.type === 'channel' ? `Message #${activeChannel.name}` : `Message ${activeChannel.name}`)
     : `You cannot post in #${activeChannel.name}`;
@@ -347,12 +387,51 @@ export default function ChatPage() {
                       const displayName = msg.displayName || 'User';
                       const photoURL = msg.photoURL || '';
                       const fallback = (displayName).charAt(0);
+                      
+                      const canModerate = userProfile?.role === 'admin' && msg.userId !== user.uid;
+                      const targetUser = allUsers.find(u => u.uid === msg.userId);
+
                       return (
                         <div key={msg.id} className="flex items-start gap-3">
-                            <Avatar className="h-9 w-9">
-                                <AvatarImage src={photoURL} alt={displayName} />
-                                <AvatarFallback>{fallback}</AvatarFallback>
-                            </Avatar>
+                            <div className="relative group">
+                              <Avatar className="h-9 w-9">
+                                  <AvatarImage src={photoURL} alt={displayName} />
+                                  <AvatarFallback>{fallback}</AvatarFallback>
+                              </Avatar>
+                              {canModerate && targetUser && (
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                      <button className="absolute inset-0 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                          <MoreVertical className="h-5 w-5 text-white" />
+                                      </button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-48 p-2">
+                                      <div className="flex flex-col gap-1">
+                                          {targetUser.isBanned || targetUser.timeoutUntil ? (
+                                              <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => handleModerationAction('unban', msg.userId)}>
+                                                  <ShieldOff className="mr-2 h-4 w-4" /> Unban
+                                              </Button>
+                                          ) : (
+                                            <>
+                                              <Button variant="ghost" size="sm" className="w-full justify-start text-red-600 hover:text-red-700" onClick={() => handleModerationAction('ban', msg.userId)}>
+                                                  <Ban className="mr-2 h-4 w-4" /> Ban User
+                                              </Button>
+                                              <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => handleModerationAction('timeout', msg.userId, 5)}>
+                                                  <Clock className="mr-2 h-4 w-4" /> Timeout 5m
+                                              </Button>
+                                              <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => handleModerationAction('timeout', msg.userId, 60)}>
+                                                  <Clock className="mr-2 h-4 w-4" /> Timeout 1h
+                                              </Button>
+                                              <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => handleModerationAction('timeout', msg.userId, 1440)}>
+                                                  <Clock className="mr-2 h-4 w-4" /> Timeout 1d
+                                              </Button>
+                                            </>
+                                          )}
+                                      </div>
+                                  </PopoverContent>
+                                </Popover>
+                              )}
+                            </div>
                             <div>
                                 <div className="flex items-center gap-2">
                                     <p className="font-semibold">{displayName}</p>
