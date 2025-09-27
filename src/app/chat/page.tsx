@@ -102,6 +102,7 @@ export default function ChatPage() {
   const isMobile = useIsMobile();
   const [isChannelsOpen, setChannelsOpen] = useState(false);
   const [isUsersOpen, setUsersOpen] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
 
     useEffect(() => {
@@ -142,9 +143,7 @@ export default function ChatPage() {
     }, [user, activeChannel]);
 
     useEffect(() => {
-        if (scrollAreaRef.current) {
-            scrollAreaRef.current.scrollTo({ top: scrollAreaRef.current.scrollHeight });
-        }
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -637,6 +636,7 @@ export default function ChatPage() {
                         )
                       })
                    )}
+                   <div ref={messagesEndRef} />
                 </div>
               </ScrollArea>
               <div className="px-4 md:px-6 pb-6">
@@ -706,5 +706,3 @@ export default function ChatPage() {
     </div>
   );
 }
-
-    
