@@ -23,6 +23,7 @@ import {
   Mic,
   Headphones,
   BadgeCheck,
+  Menu,
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
@@ -41,6 +42,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Separator } from '@/components/ui/separator';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 
 const announcementChannels = [
@@ -96,6 +99,10 @@ export default function ChatPage() {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const isMobile = useIsMobile();
+  const [isChannelsOpen, setChannelsOpen] = useState(false);
+  const [isUsersOpen, setUsersOpen] = useState(false);
+
 
     useEffect(() => {
         if (!user) return;
@@ -238,6 +245,7 @@ export default function ChatPage() {
   
   const handleChannelSelect = (id: string, name: string) => {
       setActiveChannel({ id, name, type: 'channel' });
+      if (isMobile) setChannelsOpen(false);
   };
 
   const handleDMSelect = async (peer: UserProfile) => {
@@ -256,6 +264,7 @@ export default function ChatPage() {
                 });
            }
        }
+       if (isMobile) setChannelsOpen(false);
   };
   
   const handleModerationAction = async (action: 'ban' | 'timeout' | 'unban', targetUserId: string, duration?: number) => {
@@ -368,88 +377,162 @@ export default function ChatPage() {
     
   const otherUsers = allUsers.filter(u => u.uid !== user.uid);
   const dmUnreadCounts = userProfile?.unreadDMs || {};
+
+  const ChannelsComponent = () => (
+    <div className="w-full bg-background-secondary flex flex-col h-full">
+        <header className="p-4 h-16 flex items-center shadow-md z-10 shrink-0">
+            <h1 className="font-bold text-white">AsraPy - CodingBeyondI...</h1>
+        </header>
+        <ScrollArea className="flex-1 p-2">
+            <div className="px-2 space-y-1">
+                <p className='text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 mt-4'>Text Channels</p>
+                {textChannels.map(channel => (
+                    <Button 
+                        key={channel.id} 
+                        variant={activeChannel.id === channel.id ? "channel-active" : "channel"} 
+                        className="w-full justify-start gap-2"
+                        onClick={() => handleChannelSelect(channel.id, channel.name)}
+                    >
+                        {channel.icon}
+                        {channel.name}
+                    </Button>
+                ))}
+            </div>
+             <div className="px-2 mt-4 space-y-1">
+                <p className='text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2'>Direct Messages</p>
+                {otherUsers.map(dmUser => (
+                    <Button 
+                        key={dmUser.uid} 
+                        variant={activeChannel.type === 'dm' && activeChannel.name === dmUser.displayName ? "channel-active" : "channel"} 
+                        className="w-full justify-start gap-2 relative"
+                        onClick={() => handleDMSelect(dmUser)}
+                    >
+                        <Avatar className="h-8 w-8">
+                            <AvatarImage src={dmUser.photoURL || undefined} alt={dmUser.displayName} />
+                            <AvatarFallback>{(dmUser.displayName || 'U').charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <span className="truncate">{dmUser.displayName}</span>
+                        {dmUnreadCounts[[user!.uid, dmUser.uid].sort().join('_')] > 0 && (
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 bg-red-600 text-white text-xs font-bold rounded-full h-5 min-w-[20px] flex items-center justify-center px-1.5">
+                                {dmUnreadCounts[[user!.uid, dmUser.uid].sort().join('_')]}
+                            </div>
+                        )}
+                    </Button>
+                ))}
+            </div>
+        </ScrollArea>
+         <div className='p-2 bg-[#232428] flex items-center justify-between shrink-0'>
+            {user && (
+                <div className="flex items-center gap-2">
+                    <Avatar className="h-9 w-9">
+                        <AvatarImage src={user.photoURL || ''} alt={user.displayName || 'user'} />
+                        <AvatarFallback>{(user.displayName || user.email || 'U').charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div className="text-sm">
+                        <p className="font-semibold text-white truncate">{user.displayName || user.email}</p>
+                        <p className="text-xs text-muted-foreground">Online</p>
+                    </div>
+                </div>
+            )}
+            <div className="flex items-center text-gray-400">
+                <Button variant="ghost" size="icon" className="h-8 w-8"><Mic className="h-5 w-5"/></Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8"><Headphones className="h-5 w-5"/></Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8"><Settings className="h-5 w-5"/></Button>
+            </div>
+         </div>
+    </div>
+  );
+
+  const UsersComponent = () => (
+    <div className="w-full bg-background-secondary p-3 flex flex-col h-full">
+        <ScrollArea className="flex-1">
+            <div className="space-y-4">
+                {userRoles.admin.length > 0 && (
+                    <div>
+                        <h3 className="text-xs font-bold uppercase text-muted-foreground mb-2 px-1">Admin — {userRoles.admin.length}</h3>
+                        {userRoles.admin.map(u => (
+                            <div key={u.uid} className="flex items-center gap-2 p-1 rounded-md hover:bg-background-modifier-hover cursor-pointer">
+                                <Avatar className="h-8 w-8">
+                                    <AvatarImage src={u.photoURL || undefined} />
+                                    <AvatarFallback>{(u.displayName || 'A').charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <span className="text-white font-medium">{u.displayName}</span>
+                            </div>
+                        ))}
+                    </div>
+                )}
+                {userRoles.member.length > 0 && (
+                    <div>
+                        <h3 className="text-xs font-bold uppercase text-muted-foreground mb-2 px-1">Members — {userRoles.member.length}</h3>
+                        {userRoles.member.map(u => (
+                            <div key={u.uid} className="flex items-center gap-2 p-1 rounded-md hover:bg-background-modifier-hover cursor-pointer">
+                                <Avatar className="h-8 w-8">
+                                    <AvatarImage src={u.photoURL || undefined} />
+                                    <AvatarFallback>{(u.displayName || 'M').charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <span className="text-gray-300">{u.displayName}</span>
+                            </div>
+                        ))}
+                    </div>
+                )}
+                {offlineUsers.length > 0 && (
+                    <div>
+                        <h3 className="text-xs font-bold uppercase text-muted-foreground mb-2 px-1">Offline — {offlineUsers.length}</h3>
+                        {offlineUsers.map(u => (
+                            <div key={u.uid} className="flex items-center gap-2 p-1 rounded-md hover:bg-background-modifier-hover cursor-pointer opacity-50">
+                                <Avatar className="h-8 w-8">
+                                    <AvatarImage src={u.photoURL || undefined} />
+                                    <AvatarFallback>{(u.displayName || 'U').charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <span className="text-gray-400">{u.displayName}</span>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </ScrollArea>
+    </div>
+  );
   
   return (
     <div className="flex h-screen bg-background-primary text-gray-200 font-sans">
-      {/* Main App */}
-      <div className="flex-1 flex min-w-0">
-        {/* Channel List */}
-        <div className="w-64 bg-background-secondary flex flex-col">
-            <header className="p-4 h-16 flex items-center shadow-md z-10">
-                <h1 className="font-bold text-white">AsraPy - CodingBeyondI...</h1>
-            </header>
-            <ScrollArea className="flex-1 p-2">
-                <div className="px-2 space-y-1">
-                    <p className='text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 mt-4'>Text Channels</p>
-                    {textChannels.map(channel => (
-                        <Button 
-                            key={channel.id} 
-                            variant={activeChannel.id === channel.id ? "channel-active" : "channel"} 
-                            className="w-full justify-start gap-2"
-                            onClick={() => handleChannelSelect(channel.id, channel.name)}
-                        >
-                            {channel.icon}
-                            {channel.name}
-                        </Button>
-                    ))}
-                </div>
-                 <div className="px-2 mt-4 space-y-1">
-                    <p className='text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2'>Direct Messages</p>
-                    {otherUsers.map(dmUser => (
-                        <Button 
-                            key={dmUser.uid} 
-                            variant={activeChannel.type === 'dm' && activeChannel.name === dmUser.displayName ? "channel-active" : "channel"} 
-                            className="w-full justify-start gap-2 relative"
-                            onClick={() => handleDMSelect(dmUser)}
-                        >
-                            <Avatar className="h-8 w-8">
-                                <AvatarImage src={dmUser.photoURL || undefined} alt={dmUser.displayName} />
-                                <AvatarFallback>{(dmUser.displayName || 'U').charAt(0)}</AvatarFallback>
-                            </Avatar>
-                            <span className="truncate">{dmUser.displayName}</span>
-                            {dmUnreadCounts[[user!.uid, dmUser.uid].sort().join('_')] > 0 && (
-                                <div className="absolute right-3 top-1/2 -translate-y-1/2 bg-red-600 text-white text-xs font-bold rounded-full h-5 min-w-[20px] flex items-center justify-center px-1.5">
-                                    {dmUnreadCounts[[user!.uid, dmUser.uid].sort().join('_')]}
-                                </div>
-                            )}
-                        </Button>
-                    ))}
-                </div>
-            </ScrollArea>
-             <div className='p-2 bg-[#232428] flex items-center justify-between'>
-                {user && (
-                    <div className="flex items-center gap-2">
-                        <Avatar className="h-9 w-9">
-                            <AvatarImage src={user.photoURL || ''} alt={user.displayName || 'user'} />
-                            <AvatarFallback>{(user.displayName || user.email || 'U').charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <div className="text-sm">
-                            <p className="font-semibold text-white truncate">{user.displayName || user.email}</p>
-                            <p className="text-xs text-muted-foreground">Online</p>
-                        </div>
-                    </div>
-                )}
-                <div className="flex items-center text-gray-400">
-                    <Button variant="ghost" size="icon" className="h-8 w-8"><Mic className="h-5 w-5"/></Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8"><Headphones className="h-5 w-5"/></Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8"><Settings className="h-5 w-5"/></Button>
-                </div>
-             </div>
+      {isMobile ? (
+        <Sheet open={isChannelsOpen} onOpenChange={setChannelsOpen}>
+            <SheetContent side="left" className="p-0 w-64 bg-background-secondary border-none">
+                <ChannelsComponent />
+            </SheetContent>
+        </Sheet>
+      ) : (
+         <div className="w-64 flex-shrink-0">
+            <ChannelsComponent />
         </div>
+      )}
 
-        {/* Chat Area */}
-        <div className="flex-1 flex flex-col bg-background-primary min-w-0">
-          <header className="h-16 flex items-center justify-between border-b border-background-tertiary px-4 shadow-md">
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col min-w-0">
+          <header className="h-16 flex items-center justify-between border-b border-background-tertiary px-4 shadow-md shrink-0">
             <div className='flex items-center gap-2'>
+              {isMobile && (
+                <Button variant="ghost" size="icon" onClick={() => setChannelsOpen(true)} className="text-white">
+                    <Menu className="h-6 w-6"/>
+                </Button>
+              )}
               <span className="text-muted-foreground text-2xl font-light">#</span>
               <h2 className="text-lg font-semibold text-white">
                 {activeChannel.name}
               </h2>
             </div>
             <div className="flex items-center gap-4 text-gray-400">
-                <Search className="h-5 w-5" />
-                <Inbox className="h-5 w-5" />
-                <HelpCircle className="h-5 w-5" />
+                <div className="hidden md:flex items-center gap-4">
+                    <Search className="h-5 w-5" />
+                    <Inbox className="h-5 w-5" />
+                    <HelpCircle className="h-5 w-5" />
+                </div>
+                {isMobile && (
+                    <Button variant="ghost" size="icon" onClick={() => setUsersOpen(true)} className="text-white">
+                        <Users className="h-6 w-6"/>
+                    </Button>
+                )}
             </div>
           </header>
 
@@ -457,7 +540,7 @@ export default function ChatPage() {
             {/* Chat Messages */}
             <div className="flex-1 flex flex-col">
               <ScrollArea className="flex-1" ref={scrollAreaRef}>
-                <div className="px-6 pt-6 pb-2 flex flex-col gap-0">
+                <div className="px-4 md:px-6 pt-6 pb-2 flex flex-col gap-0">
                    {groupMessages.length === 0 ? (
                       <div className="text-center text-muted-foreground mt-8">
                           <p>This is the beginning of your conversation in #{activeChannel.name}.</p>
@@ -558,7 +641,7 @@ export default function ChatPage() {
                    )}
                 </div>
               </ScrollArea>
-              <div className="px-6 pb-6">
+              <div className="px-4 md:px-6 pb-6">
                 <div className="w-full bg-background-modifier-accent rounded-lg">
                    {imagePreview && (
                     <div className="relative p-4 border-b border-background-tertiary">
@@ -609,58 +692,21 @@ export default function ChatPage() {
               </div>
             </div>
 
-             {/* User List */}
-            <div className="w-64 bg-background-secondary p-3 flex flex-col">
-                <ScrollArea className="flex-1">
-                    <div className="space-y-4">
-                        {userRoles.admin.length > 0 && (
-                            <div>
-                                <h3 className="text-xs font-bold uppercase text-muted-foreground mb-2 px-1">Admin — {userRoles.admin.length}</h3>
-                                {userRoles.admin.map(u => (
-                                    <div key={u.uid} className="flex items-center gap-2 p-1 rounded-md hover:bg-background-modifier-hover cursor-pointer">
-                                        <Avatar className="h-8 w-8">
-                                            <AvatarImage src={u.photoURL || undefined} />
-                                            <AvatarFallback>{(u.displayName || 'A').charAt(0)}</AvatarFallback>
-                                        </Avatar>
-                                        <span className="text-white font-medium">{u.displayName}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                        {userRoles.member.length > 0 && (
-                            <div>
-                                <h3 className="text-xs font-bold uppercase text-muted-foreground mb-2 px-1">Members — {userRoles.member.length}</h3>
-                                {userRoles.member.map(u => (
-                                    <div key={u.uid} className="flex items-center gap-2 p-1 rounded-md hover:bg-background-modifier-hover cursor-pointer">
-                                        <Avatar className="h-8 w-8">
-                                            <AvatarImage src={u.photoURL || undefined} />
-                                            <AvatarFallback>{(u.displayName || 'M').charAt(0)}</AvatarFallback>
-                                        </Avatar>
-                                        <span className="text-gray-300">{u.displayName}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                        {offlineUsers.length > 0 && (
-                            <div>
-                                <h3 className="text-xs font-bold uppercase text-muted-foreground mb-2 px-1">Offline — {offlineUsers.length}</h3>
-                                {offlineUsers.map(u => (
-                                    <div key={u.uid} className="flex items-center gap-2 p-1 rounded-md hover:bg-background-modifier-hover cursor-pointer opacity-50">
-                                        <Avatar className="h-8 w-8">
-                                            <AvatarImage src={u.photoURL || undefined} />
-                                            <AvatarFallback>{(u.displayName || 'U').charAt(0)}</AvatarFallback>
-                                        </Avatar>
-                                        <span className="text-gray-400">{u.displayName}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                </ScrollArea>
+            <div className="hidden md:block w-64 flex-shrink-0">
+                <UsersComponent />
             </div>
           </main>
-        </div>
       </div>
+
+       {isMobile && (
+        <Sheet open={isUsersOpen} onOpenChange={setUsersOpen}>
+            <SheetContent side="right" className="p-0 w-64 bg-background-secondary border-none">
+                <UsersComponent />
+            </SheetContent>
+        </Sheet>
+      )}
     </div>
   );
 }
+
+    

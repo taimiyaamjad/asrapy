@@ -83,13 +83,13 @@
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
 
-    --background-primary: 220 13% 18%; /* #2b2d31 */
-    --background-secondary: 220 13% 15%; /* #232428 */
-    --background-tertiary: 220 14% 10%; /* #1e1f22 */
-    --background-accent: 220 13% 25%;
-    --background-modifier-hover: 220 13% 22%;
-    --background-modifier-active: 220 13% 20%;
-    --background-modifier-accent: 220 13% 24%; /* #383a40 */
+    --background-primary: hsl(220 13% 18%); /* #2b2d31 */
+    --background-secondary: hsl(220 13% 15%); /* #232428 */
+    --background-tertiary: hsl(220 14% 10%); /* #1e1f22 */
+    --background-accent: hsl(220 13% 25%);
+    --background-modifier-hover: hsl(220 13% 22%);
+    --background-modifier-active: hsl(220 13% 20%);
+    --background-modifier-accent: hsl(220 13% 24%); /* #383a40 */
   }
 }
 
