@@ -104,8 +104,13 @@ const getHighestRole = (roles: string[]): string => {
     return 'member';
 };
 
-const getHighestRoleRank = (roles: string[]): number => {
-    const safeRoles = roles || ['member'];
+const getHighestRoleRank = (roles: string[] | string): number => {
+    let safeRoles = roles;
+    if (typeof roles === 'string') {
+        safeRoles = [roles];
+    }
+    safeRoles = (safeRoles || ['member']) as string[];
+
     const ranks = safeRoles.map(role => ALL_ROLES.indexOf(role)).filter(rank => rank !== -1);
     if (ranks.length === 0) return ALL_ROLES.length -1; // Default to lowest rank (member)
     return Math.min(...ranks);
