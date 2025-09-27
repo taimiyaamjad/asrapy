@@ -69,6 +69,7 @@ export default function LoginPage() {
         role: 'member', // Default role
         isBanned: false,
         timeoutUntil: null,
+        bio: "",
       }, { merge: true }); // Merge to avoid overwriting existing data if user logs in again
       router.push("/chat");
     } catch (error) {
@@ -117,6 +118,7 @@ export default function LoginPage() {
         role: 'member', // Default role
         isBanned: false,
         timeoutUntil: null,
+        bio: "",
       });
 
       router.push("/chat");

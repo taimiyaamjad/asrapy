@@ -74,6 +74,7 @@ interface UserProfile {
     email: string;
     photoURL: string | null;
     role: 'admin' | 'member';
+    bio?: string;
     isBanned?: boolean;
     timeoutUntil?: Timestamp | null;
     unreadDMs?: { [key: string]: number };
@@ -84,6 +85,39 @@ interface ActiveChannelInfo {
     name: string;
     type: 'channel' | 'dm';
 }
+
+const UserProfileCard = ({ userProfile }: { userProfile: UserProfile }) => {
+    return (
+        <div className="bg-background-tertiary rounded-lg overflow-hidden">
+            <div className="h-20 bg-accent" />
+            <div className="p-4 relative">
+                <Avatar className="absolute -top-10 left-4 h-20 w-20 border-4 border-background-tertiary">
+                    <AvatarImage src={userProfile.photoURL || undefined} alt={userProfile.displayName} />
+                    <AvatarFallback>{userProfile.displayName.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <div className="pt-10">
+                    <h3 className="font-bold text-lg text-white flex items-center gap-2">
+                        {userProfile.displayName}
+                        {userProfile.role === 'admin' && <BadgeCheck className="h-5 w-5 text-blue-500" />}
+                    </h3>
+                </div>
+            </div>
+            <Separator className="bg-background-secondary" />
+            <div className="p-4 space-y-4">
+                <div>
+                    <h4 className="font-bold text-xs uppercase text-muted-foreground mb-2">About Me</h4>
+                    <p className="text-sm text-gray-300">{userProfile.bio || 'No bio yet.'}</p>
+                </div>
+                 <div>
+                    <h4 className="font-bold text-xs uppercase text-muted-foreground mb-2">Roles</h4>
+                    <div className="flex gap-2">
+                         <div className="text-xs bg-gray-600 px-2 py-1 rounded-md capitalize">{userProfile.role}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 export default function ChatPage() {
   const { user, loading } = useAuth();
@@ -448,13 +482,20 @@ export default function ChatPage() {
                     <div>
                         <h3 className="text-xs font-bold uppercase text-muted-foreground mb-2 px-1">Admin — {userRoles.admin.length}</h3>
                         {userRoles.admin.map(u => (
-                            <div key={u.uid} className="flex items-center gap-2 p-1 rounded-md hover:bg-background-modifier-hover cursor-pointer">
-                                <Avatar className="h-8 w-8">
-                                    <AvatarImage src={u.photoURL || undefined} />
-                                    <AvatarFallback>{(u.displayName || 'A').charAt(0)}</AvatarFallback>
-                                </Avatar>
-                                <span className="text-white font-medium">{u.displayName}</span>
-                            </div>
+                             <Popover key={u.uid}>
+                                <PopoverTrigger asChild>
+                                    <div className="flex items-center gap-2 p-1 rounded-md hover:bg-background-modifier-hover cursor-pointer">
+                                        <Avatar className="h-8 w-8">
+                                            <AvatarImage src={u.photoURL || undefined} />
+                                            <AvatarFallback>{(u.displayName || 'A').charAt(0)}</AvatarFallback>
+                                        </Avatar>
+                                        <span className="text-white font-medium">{u.displayName}</span>
+                                    </div>
+                                </PopoverTrigger>
+                                <PopoverContent side="left" className="w-80 p-0 border-none bg-transparent">
+                                    <UserProfileCard userProfile={u} />
+                                </PopoverContent>
+                            </Popover>
                         ))}
                     </div>
                 )}
@@ -462,13 +503,20 @@ export default function ChatPage() {
                     <div>
                         <h3 className="text-xs font-bold uppercase text-muted-foreground mb-2 px-1">Members — {userRoles.member.length}</h3>
                         {userRoles.member.map(u => (
-                            <div key={u.uid} className="flex items-center gap-2 p-1 rounded-md hover:bg-background-modifier-hover cursor-pointer">
-                                <Avatar className="h-8 w-8">
-                                    <AvatarImage src={u.photoURL || undefined} />
-                                    <AvatarFallback>{(u.displayName || 'M').charAt(0)}</AvatarFallback>
-                                </Avatar>
-                                <span className="text-gray-300">{u.displayName}</span>
-                            </div>
+                            <Popover key={u.uid}>
+                                <PopoverTrigger asChild>
+                                    <div className="flex items-center gap-2 p-1 rounded-md hover:bg-background-modifier-hover cursor-pointer">
+                                        <Avatar className="h-8 w-8">
+                                            <AvatarImage src={u.photoURL || undefined} />
+                                            <AvatarFallback>{(u.displayName || 'M').charAt(0)}</AvatarFallback>
+                                        </Avatar>
+                                        <span className="text-gray-300">{u.displayName}</span>
+                                    </div>
+                                </PopoverTrigger>
+                                <PopoverContent side="left" className="w-80 p-0 border-none bg-transparent">
+                                    <UserProfileCard userProfile={u} />
+                                </PopoverContent>
+                            </Popover>
                         ))}
                     </div>
                 )}
@@ -547,7 +595,7 @@ export default function ChatPage() {
                         if ('type' in group[0] && group[0].type === 'date_divider') {
                             return (
                                 <div key={groupIndex} className="relative text-center my-6">
-                                    <Separator className="bg-gray-600" />
+                                    <Separator className="bg-gray-700" />
                                     <span className="absolute left-1/2 -translate-x-1/2 -top-3 bg-background-primary px-3 text-xs font-semibold text-gray-400">
                                         {group[0].date}
                                     </span>
@@ -569,10 +617,20 @@ export default function ChatPage() {
                                 <div className="w-10 pt-1">
                                     { (groupIndex === 0 || !(groupMessages[groupIndex-1][0] as Message).userId || ((groupMessages[groupIndex-1][0] as Message).userId !== firstMessage.userId)) &&
                                         <div className="relative group">
-                                          <Avatar className="h-10 w-10">
-                                              <AvatarImage src={photoURL} alt={displayName} />
-                                              <AvatarFallback>{fallback}</AvatarFallback>
-                                          </Avatar>
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                    <Avatar className="h-10 w-10 cursor-pointer">
+                                                        <AvatarImage src={photoURL} alt={displayName} />
+                                                        <AvatarFallback>{fallback}</AvatarFallback>
+                                                    </Avatar>
+                                                </PopoverTrigger>
+                                                {targetUser && (
+                                                <PopoverContent side="top" className="w-80 p-0 border-none bg-transparent">
+                                                    <UserProfileCard userProfile={targetUser} />
+                                                </PopoverContent>
+                                                )}
+                                           </Popover>
+                                          
                                           {canModerate && targetUser && (
                                             <Popover>
                                               <PopoverTrigger asChild>
@@ -582,9 +640,9 @@ export default function ChatPage() {
                                               </PopoverTrigger>
                                               <PopoverContent className="w-48 p-2 bg-background-tertiary border-none text-white">
                                                   <div className="flex flex-col gap-1">
-                                                      {targetUser.isBanned || targetUser.timeoutUntil ? (
+                                                      {targetUser.isBanned || (targetUser.timeoutUntil && targetUser.timeoutUntil.toDate() > new Date()) ? (
                                                           <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => handleModerationAction('unban', firstMessage.userId)}>
-                                                              <ShieldOff className="mr-2 h-4 w-4" /> Unban
+                                                              <ShieldOff className="mr-2 h-4 w-4" /> Remove Ban/Timeout
                                                           </Button>
                                                       ) : (
                                                         <>
