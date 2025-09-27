@@ -105,11 +105,14 @@ const getHighestRole = (roles: string[]): string => {
 };
 
 const getHighestRoleRank = (roles: string[] | string): number => {
-    let safeRoles = roles;
-    if (typeof roles === 'string') {
+    let safeRoles: string[];
+    if (Array.isArray(roles)) {
+        safeRoles = roles;
+    } else if (typeof roles === 'string') {
         safeRoles = [roles];
+    } else {
+        safeRoles = ['member'];
     }
-    safeRoles = (safeRoles || ['member']) as string[];
 
     const ranks = safeRoles.map(role => ALL_ROLES.indexOf(role)).filter(rank => rank !== -1);
     if (ranks.length === 0) return ALL_ROLES.length -1; // Default to lowest rank (member)
@@ -474,11 +477,6 @@ export default function ChatPage() {
 
   }, [allUsers, user]);
 
-  const offlineUsers = useMemo(() => {
-      return allUsers.filter(u => u.uid === user?.uid);
-  }, [allUsers, user]);
-
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen w-full bg-background-tertiary text-white">
@@ -611,20 +609,6 @@ export default function ChatPage() {
                         ))}
                     </div>
                 ))}
-                {offlineUsers.length > 0 && (
-                    <div>
-                        <h3 className="text-xs font-bold uppercase text-muted-foreground mb-2 px-1">Offline — {offlineUsers.length}</h3>
-                        {offlineUsers.map(u => (
-                            <div key={u.uid} className="flex items-center gap-2 p-1 rounded-md hover:bg-background-modifier-hover cursor-pointer opacity-50">
-                                <Avatar className="h-8 w-8">
-                                    <AvatarImage src={u.photoURL || undefined} />
-                                    <AvatarFallback>{(u.displayName || 'U').charAt(0)}</AvatarFallback>
-                                </Avatar>
-                                <span className="text-gray-400">{u.displayName}</span>
-                            </div>
-                        ))}
-                    </div>
-                )}
             </div>
         </ScrollArea>
     </div>
@@ -842,3 +826,5 @@ export default function ChatPage() {
     </div>
   );
 }
+
+    
