@@ -44,6 +44,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useRouter } from 'next/navigation';
 
 
 const announcementChannels = [
@@ -121,6 +122,7 @@ const UserProfileCard = ({ userProfile }: { userProfile: UserProfile }) => {
 
 export default function ChatPage() {
   const { user, loading } = useAuth();
+  const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -468,7 +470,7 @@ export default function ChatPage() {
                 </div>
             )}
             <div className="flex items-center text-gray-400">
-                <Button variant="ghost" size="icon" className="h-8 w-8"><Settings className="h-5 w-5"/></Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => router.push('/profile')}><Settings className="h-5 w-5"/></Button>
             </div>
          </div>
     </div>
@@ -764,3 +766,4 @@ export default function ChatPage() {
     </div>
   );
 }
+
