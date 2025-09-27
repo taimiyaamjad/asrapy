@@ -38,7 +38,7 @@ import { useToast } from '@/hooks/use-toast';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
-import { banUser, timeoutUser, unbanUser, updateUserRoles, ALL_ROLES } from '../actions';
+import { banUser, timeoutUser, unbanUser, updateUserRoles } from '../actions';
 import {
   Popover,
   PopoverContent,
@@ -51,6 +51,7 @@ import { useRouter } from 'next/navigation';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 
+const ALL_ROLES = ['GOD', 'CEO', 'COO', 'Admin', 'Staff', 'Developer', 'VIP', 'Coder', 'member'];
 
 const announcementChannels = [
     { id: 'announcements', name: 'announcements', icon: <Megaphone className="h-5 w-5 text-muted-foreground" /> },
@@ -841,5 +842,3 @@ export default function ChatPage() {
     </div>
   );
 }
-
-    
