@@ -223,12 +223,19 @@ export default function ChatPage() {
 
 
     useEffect(() => {
-        if (!user) return;
+        if (loading) return;
+        if (!user) {
+            router.push('/login');
+            return;
+        }
 
         const userDocRef = doc(db, 'users', user.uid);
         const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
             if (docSnap.exists()) {
                 setUserProfile(docSnap.data() as UserProfile);
+            } else {
+                // If user exists in auth but not firestore, something is wrong, send to login
+                router.push('/login');
             }
         });
 
@@ -257,7 +264,7 @@ export default function ChatPage() {
             unsubscribeMessages();
             unsubscribeAllUsers();
         };
-    }, [user, activeChannel]);
+    }, [user, loading, router, activeChannel]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -477,24 +484,10 @@ export default function ChatPage() {
 
   }, [allUsers, user]);
 
-  if (loading) {
+  if (loading || !user || !userProfile) {
     return (
       <div className="flex items-center justify-center h-screen w-full bg-background-tertiary text-white">
         <p>Loading...</p>
-      </div>
-    );
-  }
-
-  if (!user || !userProfile) {
-    return (
-      <div className="container mx-auto px-4 py-16 md:px-6 md:py-24 text-center">
-        <h1 className="text-3xl font-bold">Access Denied</h1>
-        <p className="mt-4 text-muted-foreground">
-          You must be logged in to view the chat.
-        </p>
-        <Button asChild className="mt-8">
-          <Link href="/login">Login</Link>
-        </Button>
       </div>
     );
   }
@@ -826,5 +819,3 @@ export default function ChatPage() {
     </div>
   );
 }
-
-    

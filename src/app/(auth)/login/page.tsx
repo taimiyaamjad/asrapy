@@ -50,10 +50,10 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
-    if (user) {
+    if (user && !loading) {
       router.push("/chat");
     }
-  }, [user, router]);
+  }, [user, loading, router]);
 
 
   const handleGoogleLogin = async () => {
@@ -266,5 +266,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    
