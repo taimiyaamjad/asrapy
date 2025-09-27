@@ -43,12 +43,6 @@ import {
 import { Separator } from '@/components/ui/separator';
 
 
-const projects = [
-  { id: 'asrapy', name: 'AsraPy', avatar: '/asra-tutor.png' },
-  { id: 'zencloud', name: 'ZenCloud', avatar: '/zencloud.png' },
-  { id: 'zenflow', name: 'ZenFlow', avatar: '/zenflow.png' },
-];
-
 const announcementChannels = [
     { id: 'announcements', name: 'announcements', icon: <Megaphone className="h-5 w-5 text-muted-foreground" /> },
 ];
@@ -377,20 +371,6 @@ export default function ChatPage() {
   
   return (
     <div className="flex h-screen bg-background-primary text-gray-200 font-sans">
-      {/* Project Rail */}
-      <div className="w-20 bg-background-tertiary p-3 flex flex-col items-center gap-4">
-        <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center">
-          <Image src="https://firebasestudio-hosting.web.app/images/_B_y8G-IA/AsraPy.jpeg" alt="AsraPy Logo" width={48} height={48} className="rounded-2xl" />
-        </div>
-        <Separator className="bg-gray-600" />
-        {projects.map(p => (
-            <Avatar key={p.id} className="h-12 w-12 rounded-2xl cursor-pointer hover:rounded-xl transition-all">
-                <AvatarImage src={p.avatar} />
-                <AvatarFallback>{p.name.charAt(0)}</AvatarFallback>
-            </Avatar>
-        ))}
-      </div>
-
       {/* Main App */}
       <div className="flex-1 flex min-w-0">
         {/* Channel List */}
