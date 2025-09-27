@@ -435,8 +435,6 @@ export default function ChatPage() {
                 </div>
             )}
             <div className="flex items-center text-gray-400">
-                <Button variant="ghost" size="icon" className="h-8 w-8"><Mic className="h-5 w-5"/></Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8"><Headphones className="h-5 w-5"/></Button>
                 <Button variant="ghost" size="icon" className="h-8 w-8"><Settings className="h-5 w-5"/></Button>
             </div>
          </div>
