@@ -94,7 +94,6 @@ interface ActiveChannelInfo {
 }
 
 const getHighestRole = (roles: string[]): string => {
-    // Add a fallback in case roles are not defined on a user
     const userRoles = roles || ['member'];
     for (const role of ALL_ROLES) {
         if (userRoles.includes(role)) {
@@ -233,9 +232,6 @@ export default function ChatPage() {
         const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
             if (docSnap.exists()) {
                 setUserProfile(docSnap.data() as UserProfile);
-            } else {
-                // If user exists in auth but not firestore, something is wrong, send to login
-                router.push('/login');
             }
         });
 

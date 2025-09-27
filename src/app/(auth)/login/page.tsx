@@ -60,17 +60,18 @@ export default function LoginPage() {
     try {
       const result = await signInWithPopup(auth, googleAuthProvider);
       const user = result.user;
-       // Create a user document in Firestore
+       // Create a user document in Firestore, or merge if it already exists
+       // This prevents errors on subsequent logins.
       await setDoc(doc(db, "users", user.uid), {
         uid: user.uid,
         displayName: user.displayName,
         email: user.email,
         photoURL: user.photoURL,
-        roles: ['member'], // Default role
+        roles: ['member'],
         isBanned: false,
         timeoutUntil: null,
         bio: "",
-      }, { merge: true }); // Merge to avoid overwriting existing data if user logs in again
+      }, { merge: true });
       router.push("/chat");
     } catch (error) {
       console.error("Google login error:", error);
