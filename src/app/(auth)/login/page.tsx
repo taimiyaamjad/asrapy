@@ -66,7 +66,7 @@ export default function LoginPage() {
         displayName: user.displayName,
         email: user.email,
         photoURL: user.photoURL,
-        role: 'member', // Default role
+        roles: ['member'], // Default role
         isBanned: false,
         timeoutUntil: null,
         bio: "",
@@ -115,7 +115,7 @@ export default function LoginPage() {
         displayName: values.username,
         email: user.email,
         photoURL: user.photoURL,
-        role: 'member', // Default role
+        roles: ['member'], // Default role
         isBanned: false,
         timeoutUntil: null,
         bio: "",
@@ -266,3 +266,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
+    

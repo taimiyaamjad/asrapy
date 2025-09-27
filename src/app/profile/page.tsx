@@ -140,8 +140,11 @@ export default function ProfilePage() {
     const newName = displayName.trim();
     const newBio = bio.trim();
 
+    const currentUserDoc = await getDoc(doc(db, 'users', user.uid));
+    const currentUserData = currentUserDoc.data();
+
     const nameIsChanged = newName && newName !== user.displayName;
-    const bioIsChanged = newBio !== ( (await getDoc(doc(db, 'users', user.uid))).data()?.bio || '');
+    const bioIsChanged = newBio !== (currentUserData?.bio || '');
 
     if (!nameIsChanged && !bioIsChanged) return;
     
@@ -299,3 +302,5 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+    

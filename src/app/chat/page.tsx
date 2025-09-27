@@ -24,6 +24,9 @@ import {
   Headphones,
   BadgeCheck,
   Menu,
+  Crown,
+  Shield,
+  UserCog,
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
@@ -35,7 +38,7 @@ import { useToast } from '@/hooks/use-toast';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
-import { banUser, timeoutUser, unbanUser } from '../actions';
+import { banUser, timeoutUser, unbanUser, updateUserRoles, ALL_ROLES } from '../actions';
 import {
   Popover,
   PopoverContent,
@@ -45,6 +48,8 @@ import { Separator } from '@/components/ui/separator';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useRouter } from 'next/navigation';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 
 
 const announcementChannels = [
@@ -74,7 +79,7 @@ interface UserProfile {
     displayName: string;
     email: string;
     photoURL: string | null;
-    role: 'admin' | 'member';
+    roles: string[];
     bio?: string;
     isBanned?: boolean;
     timeoutUntil?: Timestamp | null;
@@ -86,6 +91,19 @@ interface ActiveChannelInfo {
     name: string;
     type: 'channel' | 'dm';
 }
+
+const getHighestRole = (roles: string[]): string => {
+    for (const role of ALL_ROLES) {
+        if (roles.includes(role)) {
+            return role;
+        }
+    }
+    return 'member';
+};
+
+const hasAdminPower = (roles: string[]): boolean => {
+    return roles.some(role => role !== 'member');
+};
 
 const UserProfileCard = ({ userProfile }: { userProfile: UserProfile }) => {
     return (
@@ -99,7 +117,7 @@ const UserProfileCard = ({ userProfile }: { userProfile: UserProfile }) => {
                 <div className="pt-10">
                     <h3 className="font-bold text-lg text-white flex items-center gap-2">
                         {userProfile.displayName}
-                        {userProfile.role === 'admin' && <BadgeCheck className="h-5 w-5 text-blue-500" />}
+                        {hasAdminPower(userProfile.roles) && <BadgeCheck className="h-5 w-5 text-blue-500" />}
                     </h3>
                 </div>
             </div>
@@ -107,18 +125,81 @@ const UserProfileCard = ({ userProfile }: { userProfile: UserProfile }) => {
             <div className="p-4 space-y-4">
                 <div>
                     <h4 className="font-bold text-xs uppercase text-muted-foreground mb-2">About Me</h4>
-                    <p className="text-sm text-gray-300">{userProfile.bio || 'Hey, I\'m user of AsraPy'}</p>
+                    <p className="text-sm text-gray-300">{userProfile.bio || 'Hey, I\'m a user of AsraPy'}</p>
                 </div>
                  <div>
                     <h4 className="font-bold text-xs uppercase text-muted-foreground mb-2">Roles</h4>
-                    <div className="flex gap-2">
-                         <div className="text-xs bg-gray-600 px-2 py-1 rounded-md capitalize">{userProfile.role}</div>
+                    <div className="flex flex-wrap gap-2">
+                         {userProfile.roles.map(role => (
+                            <div key={role} className="text-xs bg-gray-600 px-2 py-1 rounded-md capitalize">{role}</div>
+                         ))}
                     </div>
                 </div>
             </div>
         </div>
     );
 };
+
+const ModerationPopoverContent = ({ targetUser, currentUser, onAction }: { targetUser: UserProfile, currentUser: UserProfile, onAction: (action: 'ban' | 'timeout' | 'unban' | 'updateRoles', payload?: any) => void }) => {
+    const [selectedRoles, setSelectedRoles] = useState(targetUser.roles.filter(r => r !== 'member'));
+    
+    const handleRoleChange = (role: string, checked: boolean) => {
+        setSelectedRoles(prev => checked ? [...prev, role] : prev.filter(r => r !== role));
+    };
+
+    const handleSaveChanges = () => {
+        onAction('updateRoles', selectedRoles);
+    };
+
+    const manageableRoles = ALL_ROLES.filter(r => r !== 'member');
+
+    return (
+        <PopoverContent className="w-56 p-2 bg-background-tertiary border-none text-white">
+            <div className="flex flex-col gap-1">
+                {targetUser.isBanned || (targetUser.timeoutUntil && targetUser.timeoutUntil.toDate() > new Date()) ? (
+                    <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => onAction('unban')}>
+                        <ShieldOff className="mr-2 h-4 w-4" /> Remove Ban/Timeout
+                    </Button>
+                ) : (
+                    <>
+                        <Button variant="ghost" size="sm" className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-900/20" onClick={() => onAction('ban')}>
+                            <Ban className="mr-2 h-4 w-4" /> Ban User
+                        </Button>
+                        <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => onAction('timeout', 5)}>
+                            <Clock className="mr-2 h-4 w-4" /> Timeout 5m
+                        </Button>
+                        <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => onAction('timeout', 60)}>
+                            <Clock className="mr-2 h-4 w-4" /> Timeout 1h
+                        </Button>
+                        <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => onAction('timeout', 1440)}>
+                            <Clock className="mr-2 h-4 w-4" /> Timeout 1d
+                        </Button>
+                    </>
+                )}
+                <Separator className="my-2 bg-gray-700"/>
+                <div className="px-2">
+                    <h4 className="font-bold text-xs uppercase text-muted-foreground mb-2">Manage Roles</h4>
+                     <div className="space-y-2">
+                        {manageableRoles.map(role => (
+                            <div key={role} className="flex items-center space-x-2">
+                                <Checkbox 
+                                    id={`role-${targetUser.uid}-${role}`}
+                                    checked={selectedRoles.includes(role)}
+                                    onCheckedChange={(checked) => handleRoleChange(role, !!checked)}
+                                />
+                                <Label htmlFor={`role-${targetUser.uid}-${role}`} className="text-sm font-medium leading-none capitalize text-gray-300">
+                                    {role}
+                                </Label>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+                <Button size="sm" className="mt-4" onClick={handleSaveChanges}>Save Changes</Button>
+            </div>
+        </PopoverContent>
+    );
+};
+
 
 export default function ChatPage() {
   const { user, loading } = useAuth();
@@ -216,11 +297,11 @@ export default function ChatPage() {
         return;
     }
 
-    if (activeChannel.type === 'channel' && activeChannel.id === 'announcements' && userProfile.role !== 'admin') {
+    if (activeChannel.type === 'channel' && activeChannel.id === 'announcements' && !hasAdminPower(userProfile.roles)) {
       toast({
         variant: 'destructive',
         title: 'Permission Denied',
-        description: 'Only admins can post in the announcements channel.',
+        description: 'You do not have permission to post in announcements.',
       });
       return;
     }
@@ -302,7 +383,7 @@ export default function ChatPage() {
        if (isMobile) setChannelsOpen(false);
   };
   
-  const handleModerationAction = async (action: 'ban' | 'timeout' | 'unban', targetUserId: string, duration?: number) => {
+  const handleModerationAction = async (action: 'ban' | 'timeout' | 'unban' | 'updateRoles', targetUserId: string, payload?: any) => {
     try {
         const idToken = await auth.currentUser?.getIdToken();
         if (!idToken) throw new Error("Not authenticated");
@@ -310,10 +391,12 @@ export default function ChatPage() {
         let result;
         if (action === 'ban') {
             result = await banUser(targetUserId);
-        } else if (action === 'timeout' && duration) {
-            result = await timeoutUser(targetUserId, duration);
+        } else if (action === 'timeout') {
+            result = await timeoutUser(targetUserId, payload as number);
         } else if (action === 'unban') {
             result = await unbanUser(targetUserId);
+        } else if (action === 'updateRoles') {
+            result = await updateUserRoles(targetUserId, payload as string[]);
         }
 
         if (result?.success) {
@@ -370,12 +453,28 @@ export default function ChatPage() {
     return grouped;
   }, [messages]);
 
-  const userRoles = useMemo(() => {
+  const groupedUsersByRole = useMemo(() => {
     const onlineUsers = allUsers.filter(u => u.uid !== user?.uid);
-    return {
-      admin: onlineUsers.filter(u => u.role === 'admin'),
-      member: onlineUsers.filter(u => u.role === 'member'),
-    };
+    const groups: { [key: string]: UserProfile[] } = {};
+
+    onlineUsers.forEach(u => {
+        const highestRole = getHighestRole(u.roles);
+        if (!groups[highestRole]) {
+            groups[highestRole] = [];
+        }
+        groups[highestRole].push(u);
+    });
+
+    // Order groups by role rank
+    const orderedGroups: {role: string, users: UserProfile[]}[] = [];
+    for (const role of ALL_ROLES) {
+        if (groups[role]) {
+            orderedGroups.push({ role, users: groups[role]});
+        }
+    }
+
+    return orderedGroups;
+
   }, [allUsers, user]);
 
   const offlineUsers = useMemo(() => {
@@ -391,7 +490,7 @@ export default function ChatPage() {
     );
   }
 
-  if (!user) {
+  if (!user || !userProfile) {
     return (
       <div className="container mx-auto px-4 py-16 md:px-6 md:py-24 text-center">
         <h1 className="text-3xl font-bold">Access Denied</h1>
@@ -405,7 +504,7 @@ export default function ChatPage() {
     );
   }
 
-  const canPost = activeChannel.type === 'dm' || (activeChannel.id !== 'announcements' || userProfile?.role === 'admin');
+  const canPost = activeChannel.type === 'dm' || (activeChannel.id !== 'announcements' || hasAdminPower(userProfile.roles));
   const placeholderText = canPost 
     ? (activeChannel.type === 'channel' ? `Message #${activeChannel.name}` : `Message @${activeChannel.name}`)
     : `You cannot post in #${activeChannel.name}`;
@@ -419,8 +518,22 @@ export default function ChatPage() {
             <h1 className="font-bold text-white">AsraPy - CodingBeyondI...</h1>
         </header>
         <ScrollArea className="flex-1 p-2">
-            <div className="px-2 space-y-1">
-                <p className='text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 mt-4'>Text Channels</p>
+             <div className="px-2 space-y-1">
+                <p className='text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 mt-4'>Announcements</p>
+                {announcementChannels.map(channel => (
+                    <Button 
+                        key={channel.id} 
+                        variant={activeChannel.id === channel.id ? "channel-active" : "channel"} 
+                        className="w-full justify-start gap-2"
+                        onClick={() => handleChannelSelect(channel.id, channel.name)}
+                    >
+                        {channel.icon}
+                        {channel.name}
+                    </Button>
+                ))}
+            </div>
+            <div className="px-2 space-y-1 mt-4">
+                <p className='text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2'>Text Channels</p>
                 {textChannels.map(channel => (
                     <Button 
                         key={channel.id} 
@@ -480,10 +593,10 @@ export default function ChatPage() {
     <div className="w-full bg-background-secondary p-3 flex flex-col h-full">
         <ScrollArea className="flex-1">
             <div className="space-y-4">
-                {userRoles.admin.length > 0 && (
-                    <div>
-                        <h3 className="text-xs font-bold uppercase text-muted-foreground mb-2 px-1">Admin — {userRoles.admin.length}</h3>
-                        {userRoles.admin.map(u => (
+                {groupedUsersByRole.map(({ role, users }) => (
+                     <div key={role}>
+                        <h3 className="text-xs font-bold uppercase text-muted-foreground mb-2 px-1 capitalize">{role} — {users.length}</h3>
+                        {users.map(u => (
                              <Popover key={u.uid}>
                                 <PopoverTrigger asChild>
                                     <div className="flex items-center gap-2 p-1 rounded-md hover:bg-background-modifier-hover cursor-pointer">
@@ -500,28 +613,7 @@ export default function ChatPage() {
                             </Popover>
                         ))}
                     </div>
-                )}
-                {userRoles.member.length > 0 && (
-                    <div>
-                        <h3 className="text-xs font-bold uppercase text-muted-foreground mb-2 px-1">Members — {userRoles.member.length}</h3>
-                        {userRoles.member.map(u => (
-                            <Popover key={u.uid}>
-                                <PopoverTrigger asChild>
-                                    <div className="flex items-center gap-2 p-1 rounded-md hover:bg-background-modifier-hover cursor-pointer">
-                                        <Avatar className="h-8 w-8">
-                                            <AvatarImage src={u.photoURL || undefined} />
-                                            <AvatarFallback>{(u.displayName || 'M').charAt(0)}</AvatarFallback>
-                                        </Avatar>
-                                        <span className="text-gray-300">{u.displayName}</span>
-                                    </div>
-                                </PopoverTrigger>
-                                <PopoverContent side="left" className="w-80 p-0 border-none bg-transparent">
-                                    <UserProfileCard userProfile={u} />
-                                </PopoverContent>
-                            </Popover>
-                        ))}
-                    </div>
-                )}
+                ))}
                 {offlineUsers.length > 0 && (
                     <div>
                         <h3 className="text-xs font-bold uppercase text-muted-foreground mb-2 px-1">Offline — {offlineUsers.length}</h3>
@@ -610,9 +702,11 @@ export default function ChatPage() {
                         const displayName = firstMessage.displayName || 'User';
                         const photoURL = firstMessage.photoURL || '';
                         const fallback = (displayName).charAt(0);
-                        const canModerate = userProfile?.role === 'admin' && firstMessage.userId !== user.uid;
+
                         const targetUser = allUsers.find(u => u.uid === firstMessage.userId);
-                        const isAdmin = targetUser?.role === 'admin';
+                        const moderatorRank = userProfile ? ALL_ROLES.indexOf(getHighestRole(userProfile.roles)) : 99;
+                        const targetRank = targetUser ? ALL_ROLES.indexOf(getHighestRole(targetUser.roles)) : 99;
+                        const canModerate = userProfile && targetUser && moderatorRank < targetRank;
 
                         return (
                             <div key={groupIndex} className="flex items-start gap-4 py-1.5 hover:bg-gray-900/40 px-2 -mx-2 rounded-md">
@@ -633,37 +727,18 @@ export default function ChatPage() {
                                                 )}
                                            </Popover>
                                           
-                                          {canModerate && targetUser && (
+                                          {canModerate && targetUser && userProfile && (
                                             <Popover>
                                               <PopoverTrigger asChild>
                                                   <button className="absolute inset-0 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                                       <MoreVertical className="h-5 w-5 text-white" />
                                                   </button>
                                               </PopoverTrigger>
-                                              <PopoverContent className="w-48 p-2 bg-background-tertiary border-none text-white">
-                                                  <div className="flex flex-col gap-1">
-                                                      {targetUser.isBanned || (targetUser.timeoutUntil && targetUser.timeoutUntil.toDate() > new Date()) ? (
-                                                          <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => handleModerationAction('unban', firstMessage.userId)}>
-                                                              <ShieldOff className="mr-2 h-4 w-4" /> Remove Ban/Timeout
-                                                          </Button>
-                                                      ) : (
-                                                        <>
-                                                          <Button variant="ghost" size="sm" className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-900/20" onClick={() => handleModerationAction('ban', firstMessage.userId)}>
-                                                              <Ban className="mr-2 h-4 w-4" /> Ban User
-                                                          </Button>
-                                                          <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => handleModerationAction('timeout', firstMessage.userId, 5)}>
-                                                              <Clock className="mr-2 h-4 w-4" /> Timeout 5m
-                                                          </Button>
-                                                          <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => handleModerationAction('timeout', firstMessage.userId, 60)}>
-                                                              <Clock className="mr-2 h-4 w-4" /> Timeout 1h
-                                                          </Button>
-                                                          <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => handleModerationAction('timeout', firstMessage.userId, 1440)}>
-                                                              <Clock className="mr-2 h-4 w-4" /> Timeout 1d
-                                                          </Button>
-                                                        </>
-                                                      )}
-                                                  </div>
-                                              </PopoverContent>
+                                              <ModerationPopoverContent 
+                                                targetUser={targetUser} 
+                                                currentUser={userProfile}
+                                                onAction={(action, payload) => handleModerationAction(action, firstMessage.userId, payload)}
+                                              />
                                             </Popover>
                                           )}
                                         </div>
@@ -673,7 +748,7 @@ export default function ChatPage() {
                                     {(groupIndex === 0 || !messages[0].createdAt || !groupMessages[groupIndex-1][0] || !('createdAt' in groupMessages[groupIndex-1][0]) || ((groupMessages[groupIndex-1][0] as Message).userId !== firstMessage.userId)) &&
                                         <div className="flex items-center gap-2">
                                             <p className="font-medium text-white">{displayName}</p>
-                                            {isAdmin && <BadgeCheck className="h-4 w-4 text-blue-500" />}
+                                            {targetUser && hasAdminPower(targetUser.roles) && <BadgeCheck className="h-4 w-4 text-blue-500" />}
                                             <p className="text-xs text-muted-foreground">
                                                 {firstMessage.createdAt ? format(firstMessage.createdAt.toDate(), 'p') : ''}
                                             </p>
@@ -767,3 +842,4 @@ export default function ChatPage() {
   );
 }
 
+    
