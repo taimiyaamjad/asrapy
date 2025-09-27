@@ -106,7 +106,7 @@ const UserProfileCard = ({ userProfile }: { userProfile: UserProfile }) => {
             <div className="p-4 space-y-4">
                 <div>
                     <h4 className="font-bold text-xs uppercase text-muted-foreground mb-2">About Me</h4>
-                    <p className="text-sm text-gray-300">{userProfile.bio || 'No bio yet.'}</p>
+                    <p className="text-sm text-gray-300">{userProfile.bio || 'Hey, I\'m user of AsraPy'}</p>
                 </div>
                  <div>
                     <h4 className="font-bold text-xs uppercase text-muted-foreground mb-2">Roles</h4>
