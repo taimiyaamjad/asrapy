@@ -332,8 +332,17 @@ export default function ChatPage() {
     return grouped;
   }, [messages]);
 
-  const onlineUsers = allUsers.filter(u => u.uid !== user?.uid); // You might want a real presence system here
-  const offlineUsers = allUsers.filter(u => u.uid === user?.uid); // Placeholder logic
+  const userRoles = useMemo(() => {
+    const onlineUsers = allUsers.filter(u => u.uid !== user?.uid);
+    return {
+      admin: onlineUsers.filter(u => u.role === 'admin'),
+      member: onlineUsers.filter(u => u.role === 'member'),
+    };
+  }, [allUsers, user]);
+
+  const offlineUsers = useMemo(() => {
+      return allUsers.filter(u => u.uid === user?.uid);
+  }, [allUsers, user]);
 
 
   if (loading) {
@@ -366,11 +375,6 @@ export default function ChatPage() {
   const otherUsers = allUsers.filter(u => u.uid !== user.uid);
   const dmUnreadCounts = userProfile?.unreadDMs || {};
   
-  const userRoles = {
-      admin: allUsers.filter(u => u.role === 'admin' && u.uid !== user.uid),
-      member: allUsers.filter(u => u.role === 'member' && u.uid !== user.uid),
-  }
-
   return (
     <div className="flex h-screen bg-background-primary text-gray-200 font-sans">
       {/* Project Rail */}
@@ -629,40 +633,48 @@ export default function ChatPage() {
             <div className="w-64 bg-background-secondary p-3 flex flex-col">
                 <ScrollArea className="flex-1">
                     <div className="space-y-4">
-                        <div>
-                            <h3 className="text-xs font-bold uppercase text-muted-foreground mb-2 px-1">Admin — {userRoles.admin.length}</h3>
-                            {userRoles.admin.map(u => (
-                                <div key={u.uid} className="flex items-center gap-2 p-1 rounded-md hover:bg-background-modifier-hover cursor-pointer">
-                                    <Avatar className="h-8 w-8">
-                                        <AvatarImage src={u.photoURL || undefined} />
-                                        <AvatarFallback>{u.displayName.charAt(0)}</AvatarFallback>
-                                    </Avatar>
-                                    <span className="text-white font-medium">{u.displayName}</span>
-                                </div>
-                            ))}
-                        </div>
-                        <div>
-                            <h3 className="text-xs font-bold uppercase text-muted-foreground mb-2 px-1">Members — {userRoles.member.length}</h3>
-                            {userRoles.member.map(u => (
-                                <div key={u.uid} className="flex items-center gap-2 p-1 rounded-md hover:bg-background-modifier-hover cursor-pointer">
-                                    <Avatar className="h-8 w-8">
-                                        <AvatarImage src={u.photoURL || undefined} />
-                                        <AvatarFallback>{u.displayName.charAt(0)}</AvatarFallback>
-                                    </Avatar>
-                                    <span className="text-gray-300">{u.displayName}</span>
-                                </div>
-                            ))}
-                        </div>
-                        <div>
-                            <h3 className="text-xs font-bold uppercase text-muted-foreground mb-2 px-1">Offline — {offlineUsers.length}</h3>
-                             <div className="flex items-center gap-2 p-1 rounded-md hover:bg-background-modifier-hover cursor-pointer opacity-50">
-                                <Avatar className="h-8 w-8">
-                                    <AvatarImage src={user?.photoURL || undefined} />
-                                    <AvatarFallback>{user?.displayName?.charAt(0)}</AvatarFallback>
-                                </Avatar>
-                                <span className="text-gray-400">{user?.displayName}</span>
+                        {userRoles.admin.length > 0 && (
+                            <div>
+                                <h3 className="text-xs font-bold uppercase text-muted-foreground mb-2 px-1">Admin — {userRoles.admin.length}</h3>
+                                {userRoles.admin.map(u => (
+                                    <div key={u.uid} className="flex items-center gap-2 p-1 rounded-md hover:bg-background-modifier-hover cursor-pointer">
+                                        <Avatar className="h-8 w-8">
+                                            <AvatarImage src={u.photoURL || undefined} />
+                                            <AvatarFallback>{(u.displayName || 'A').charAt(0)}</AvatarFallback>
+                                        </Avatar>
+                                        <span className="text-white font-medium">{u.displayName}</span>
+                                    </div>
+                                ))}
                             </div>
-                        </div>
+                        )}
+                        {userRoles.member.length > 0 && (
+                            <div>
+                                <h3 className="text-xs font-bold uppercase text-muted-foreground mb-2 px-1">Members — {userRoles.member.length}</h3>
+                                {userRoles.member.map(u => (
+                                    <div key={u.uid} className="flex items-center gap-2 p-1 rounded-md hover:bg-background-modifier-hover cursor-pointer">
+                                        <Avatar className="h-8 w-8">
+                                            <AvatarImage src={u.photoURL || undefined} />
+                                            <AvatarFallback>{(u.displayName || 'M').charAt(0)}</AvatarFallback>
+                                        </Avatar>
+                                        <span className="text-gray-300">{u.displayName}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        {offlineUsers.length > 0 && (
+                            <div>
+                                <h3 className="text-xs font-bold uppercase text-muted-foreground mb-2 px-1">Offline — {offlineUsers.length}</h3>
+                                {offlineUsers.map(u => (
+                                    <div key={u.uid} className="flex items-center gap-2 p-1 rounded-md hover:bg-background-modifier-hover cursor-pointer opacity-50">
+                                        <Avatar className="h-8 w-8">
+                                            <AvatarImage src={u.photoURL || undefined} />
+                                            <AvatarFallback>{(u.displayName || 'U').charAt(0)}</AvatarFallback>
+                                        </Avatar>
+                                        <span className="text-gray-400">{u.displayName}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </ScrollArea>
             </div>
@@ -672,5 +684,3 @@ export default function ChatPage() {
     </div>
   );
 }
-
-    
