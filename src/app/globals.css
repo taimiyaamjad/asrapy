@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -37,27 +38,36 @@
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 240 5.9% 88%;
     --sidebar-ring: 240 5.9% 10%;
+
+    --background-primary: 220 13% 18%;
+    --background-secondary: 220 13% 15%;
+    --background-tertiary: 220 14% 10%;
+    --background-accent: 220 13% 25%;
+    --background-modifier-hover: 220 13% 22%;
+    --background-modifier-active: 220 13% 20%;
+    --background-modifier-accent: 220 13% 24%;
+
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    --background: 220 14% 10%; /* bg-background-tertiary */
     --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
+    --card: 220 13% 15%; /* bg-background-secondary */
     --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
+    --popover: 220 14% 10%;
     --popover-foreground: 210 40% 98%;
     --primary: 210 40% 98%;
     --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
+    --secondary: 220 13% 24%; /* bg-background-modifier-accent */
     --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215.4 16.3% 56.9%;
-    --accent: 217.2 32.6% 17.5%;
+    --muted: 220 13% 24%;
+    --muted-foreground: 220 9% 61%;
+    --accent: 220 13% 30%;
     --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 350 78% 55%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
+    --border: 220 14% 20%;
+    --input: 220 13% 24%;
     --ring: 212.7 26.8% 83.9%;
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
@@ -72,6 +82,14 @@
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    --background-primary: 220 13% 18%; /* #2b2d31 */
+    --background-secondary: 220 13% 15%; /* #232428 */
+    --background-tertiary: 220 14% 10%; /* #1e1f22 */
+    --background-accent: 220 13% 25%;
+    --background-modifier-hover: 220 13% 22%;
+    --background-modifier-active: 220 13% 20%;
+    --background-modifier-accent: 220 13% 24%; /* #383a40 */
   }
 }
 
@@ -83,3 +101,19 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+    .font-sans {
+        font-family: "gg sans", "Noto Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    }
+
+    .btn-channel {
+        @apply text-muted-foreground hover:text-gray-200 hover:bg-background-modifier-hover;
+    }
+
+    .btn-channel-active {
+        @apply text-white bg-background-modifier-active;
+    }
+}
+
+    

@@ -1,3 +1,4 @@
+
 import type {Config} from 'tailwindcss';
 
 export default {
@@ -13,6 +14,7 @@ export default {
         body: ['Inter', 'sans-serif'],
         headline: ['Space Grotesk', 'sans-serif'],
         code: ['monospace'],
+        sans: ['gg sans', 'Noto Sans', 'Helvetica Neue', 'Helvetica', 'Arial', 'sans-serif'],
       },
       colors: {
         background: 'hsl(var(--background))',
@@ -65,6 +67,13 @@ export default {
           border: 'hsl(var(--sidebar-border))',
           ring: 'hsl(var(--sidebar-ring))',
         },
+         "background-primary": "var(--background-primary)",
+        "background-secondary": "var(--background-secondary)",
+        "background-tertiary": "var(--background-tertiary)",
+        "background-accent": "var(--background-accent)",
+        "background-modifier-hover": "var(--background-modifier-hover)",
+        "background-modifier-active": "var(--background-modifier-active)",
+        "background-modifier-accent": "var(--background-modifier-accent)",
       },
       borderRadius: {
         lg: 'var(--radius)',
@@ -121,3 +130,5 @@ export default {
     }
   ],
 } satisfies Config;
+
+    
