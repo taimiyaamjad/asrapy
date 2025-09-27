@@ -104,6 +104,14 @@ const getHighestRole = (roles: string[]): string => {
     return 'member';
 };
 
+const getHighestRoleRank = (roles: string[]): number => {
+    const safeRoles = roles || ['member'];
+    const ranks = safeRoles.map(role => ALL_ROLES.indexOf(role)).filter(rank => rank !== -1);
+    if (ranks.length === 0) return ALL_ROLES.length -1; // Default to lowest rank (member)
+    return Math.min(...ranks);
+};
+
+
 const hasAdminPower = (roles: string[]): boolean => {
     return (roles || []).some(role => role !== 'member');
 };
@@ -691,7 +699,6 @@ export default function ChatPage() {
                         const moderatorRoles = userProfile?.roles || [];
                         const targetRoles = targetUser?.roles || ['member'];
 
-                        const getHighestRoleRank = (roles: string[]) => Math.min(...(roles || ['member']).map(r => ALL_ROLES.indexOf(r)).filter(r => r !== -1));
                         const moderatorRank = getHighestRoleRank(moderatorRoles);
                         const targetRank = getHighestRoleRank(targetRoles);
                         
