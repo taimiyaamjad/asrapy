@@ -94,8 +94,10 @@ interface ActiveChannelInfo {
 }
 
 const getHighestRole = (roles: string[]): string => {
+    // Add a fallback in case roles are not defined on a user
+    const userRoles = roles || ['member'];
     for (const role of ALL_ROLES) {
-        if (roles.includes(role)) {
+        if (userRoles.includes(role)) {
             return role;
         }
     }
@@ -103,7 +105,7 @@ const getHighestRole = (roles: string[]): string => {
 };
 
 const hasAdminPower = (roles: string[]): boolean => {
-    return roles.some(role => role !== 'member');
+    return (roles || []).some(role => role !== 'member');
 };
 
 const UserProfileCard = ({ userProfile }: { userProfile: UserProfile }) => {
@@ -131,7 +133,7 @@ const UserProfileCard = ({ userProfile }: { userProfile: UserProfile }) => {
                  <div>
                     <h4 className="font-bold text-xs uppercase text-muted-foreground mb-2">Roles</h4>
                     <div className="flex flex-wrap gap-2">
-                         {userProfile.roles.map(role => (
+                         {(userProfile.roles || ['member']).map(role => (
                             <div key={role} className="text-xs bg-gray-600 px-2 py-1 rounded-md capitalize">{role}</div>
                          ))}
                     </div>
@@ -177,25 +179,6 @@ const ModerationPopoverContent = ({ targetUser, currentUser, onAction }: { targe
                         </Button>
                     </>
                 )}
-                <Separator className="my-2 bg-gray-700"/>
-                <div className="px-2">
-                    <h4 className="font-bold text-xs uppercase text-muted-foreground mb-2">Manage Roles</h4>
-                     <div className="space-y-2">
-                        {manageableRoles.map(role => (
-                            <div key={role} className="flex items-center space-x-2">
-                                <Checkbox 
-                                    id={`role-${targetUser.uid}-${role}`}
-                                    checked={selectedRoles.includes(role)}
-                                    onCheckedChange={(checked) => handleRoleChange(role, !!checked)}
-                                />
-                                <Label htmlFor={`role-${targetUser.uid}-${role}`} className="text-sm font-medium leading-none capitalize text-gray-300">
-                                    {role}
-                                </Label>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-                <Button size="sm" className="mt-4" onClick={handleSaveChanges}>Save Changes</Button>
             </div>
         </PopoverContent>
     );
@@ -705,8 +688,13 @@ export default function ChatPage() {
                         const fallback = (displayName).charAt(0);
 
                         const targetUser = allUsers.find(u => u.uid === firstMessage.userId);
-                        const moderatorRank = userProfile ? ALL_ROLES.indexOf(getHighestRole(userProfile.roles)) : 99;
-                        const targetRank = targetUser ? ALL_ROLES.indexOf(getHighestRole(targetUser.roles)) : 99;
+                        const moderatorRoles = userProfile?.roles || [];
+                        const targetRoles = targetUser?.roles || ['member'];
+
+                        const getHighestRoleRank = (roles: string[]) => Math.min(...(roles || ['member']).map(r => ALL_ROLES.indexOf(r)).filter(r => r !== -1));
+                        const moderatorRank = getHighestRoleRank(moderatorRoles);
+                        const targetRank = getHighestRoleRank(targetRoles);
+                        
                         const canModerate = userProfile && targetUser && moderatorRank < targetRank;
 
                         return (
