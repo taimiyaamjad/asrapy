@@ -120,7 +120,7 @@ const getHighestRoleRank = (roles: string[] | string): number => {
 
 
 const hasAdminPower = (roles: string[]): boolean => {
-    return (roles || []).some(role => role !== 'member');
+    return (roles || []).some(role => ['GOD', 'CEO', 'COO', 'Admin'].includes(role));
 };
 
 const UserProfileCard = ({ userProfile }: { userProfile: UserProfile }) => {
@@ -250,10 +250,10 @@ export default function ChatPage() {
         });
         
         const collectionPath = activeChannel.type === 'channel' 
-            ? ['channels', activeChannel.id, 'messages'] 
-            : ['dms', activeChannel.id, 'messages'];
+            ? `channels/${activeChannel.id}/messages` 
+            : `dms/${activeChannel.id}/messages`;
 
-        const q = query(collection(db, ...collectionPath), orderBy('createdAt', 'asc'));
+        const q = query(collection(db, collectionPath), orderBy('createdAt', 'asc'));
         const unsubscribeMessages = onSnapshot(q, (querySnapshot) => {
             const msgs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Message));
             setMessages(msgs);
@@ -337,8 +337,8 @@ export default function ChatPage() {
     }
     
     const collectionPath = activeChannel.type === 'channel' 
-        ? ['channels', activeChannel.id, 'messages']
-        : ['dms', activeChannel.id, 'messages'];
+        ? `channels/${activeChannel.id}/messages`
+        : `dms/${activeChannel.id}/messages`;
 
     const messageData = {
       text: newMessage.trim() || null,
@@ -349,7 +349,7 @@ export default function ChatPage() {
       photoURL: user.photoURL,
     };
 
-    await addDoc(collection(db, ...collectionPath), messageData);
+    await addDoc(collection(db, collectionPath), messageData);
 
     if (activeChannel.type === 'dm') {
         const peerId = activeChannel.id.replace(user.uid, '').replace('_', '');
@@ -821,5 +821,3 @@ export default function ChatPage() {
     </div>
   );
 }
-
-    
