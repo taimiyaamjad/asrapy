@@ -55,7 +55,7 @@ export async function updateUserRoles(userId: string, newRoles: string[]) {
     
     // Ensure 'member' is always present if no other roles are selected
     if (newRoles.length === 0) {
-        newRoles = ['member'];
+        newRoles.push('member');
     } else if (!newRoles.includes('member')){
         newRoles.push('member');
     }
