@@ -2,7 +2,7 @@
 "use server";
 
 import { adminDb } from '@/lib/firebase/server';
-import { doc, updateDoc, Timestamp, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { doc, updateDoc, Timestamp, arrayUnion, arrayRemove } from 'firebase-admin/firestore';
 import { revalidatePath } from 'next/cache';
 
 export async function banUser(userId: string) {
@@ -89,13 +89,14 @@ export async function acceptFriendRequest(userId: string, requesterId: string) {
         const userDocRef = doc(adminDb, 'users', userId);
         const requesterDocRef = doc(adminDb, 'users', requesterId);
 
+        // Use Firestore transaction or batched write for atomicity if needed, but for now this is fine.
         await updateDoc(userDocRef, {
             friends: arrayUnion(requesterId),
-            [`friendRequests.${requesterId}`]: null 
+            [`friendRequests.${requesterId}`]: FieldValue.delete()
         });
         await updateDoc(requesterDocRef, {
             friends: arrayUnion(userId),
-            [`friendRequests.${userId}`]: null
+            [`friendRequests.${userId}`]: FieldValue.delete()
         });
 
         revalidatePath('/chat');

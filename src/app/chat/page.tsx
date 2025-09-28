@@ -34,7 +34,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { FormEvent, useEffect, useRef, useState, useMemo } from 'react';
-import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, Timestamp, doc, getDoc, getDocs, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, Timestamp, doc, getDoc, getDocs, updateDoc, FieldValue } from 'firebase/firestore';
 import { db, storage, auth } from '@/lib/firebase/client';
 import { format, formatDistanceToNow, isToday, isYesterday } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
