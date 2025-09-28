@@ -2,7 +2,7 @@
 "use server";
 
 import { adminDb } from '@/lib/firebase/server';
-import { doc, updateDoc, Timestamp } from 'firebase/firestore';
+import { doc, updateDoc, Timestamp, getDoc } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 
 export async function banUser(userId: string) {

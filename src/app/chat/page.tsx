@@ -158,7 +158,7 @@ const UserProfileCard = ({ userProfile }: { userProfile: UserProfile }) => {
     );
 };
 
-const ModerationPopoverContent = ({ targetUser, currentUser, onAction }: { targetUser: UserProfile, currentUser: UserProfile, onAction: (action: 'ban' | 'timeout' | 'unban' | 'updateRoles', payload?: any) => void }) => {
+const ModerationPopoverContent = ({ targetUser, currentUser, onAction }: { targetUser: UserProfile, currentUser: UserProfile, onAction: (action: 'ban' | 'timeout' | 'unban' | 'updateRoles', userId: string, payload?: any) => void }) => {
     const [selectedRoles, setSelectedRoles] = useState(targetUser.roles.filter(r => r !== 'member'));
     
     const handleRoleChange = (role: string, checked: boolean) => {
@@ -166,7 +166,7 @@ const ModerationPopoverContent = ({ targetUser, currentUser, onAction }: { targe
     };
 
     const handleSaveChanges = () => {
-        onAction('updateRoles', selectedRoles);
+        onAction('updateRoles', targetUser.uid, selectedRoles);
     };
 
     const manageableRoles = ALL_ROLES.filter(r => r !== 'member');
@@ -175,21 +175,21 @@ const ModerationPopoverContent = ({ targetUser, currentUser, onAction }: { targe
         <PopoverContent className="w-56 p-2 bg-background-tertiary border-none text-white">
             <div className="flex flex-col gap-1">
                 {targetUser.isBanned || (targetUser.timeoutUntil && targetUser.timeoutUntil.toDate() > new Date()) ? (
-                    <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => onAction('unban')}>
+                    <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => onAction('unban', targetUser.uid)}>
                         <ShieldOff className="mr-2 h-4 w-4" /> Remove Ban/Timeout
                     </Button>
                 ) : (
                     <>
-                        <Button variant="ghost" size="sm" className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-900/20" onClick={() => onAction('ban')}>
+                        <Button variant="ghost" size="sm" className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-900/20" onClick={() => onAction('ban', targetUser.uid)}>
                             <Ban className="mr-2 h-4 w-4" /> Ban User
                         </Button>
-                        <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => onAction('timeout', 5)}>
+                        <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => onAction('timeout', targetUser.uid, 5)}>
                             <Clock className="mr-2 h-4 w-4" /> Timeout 5m
                         </Button>
-                        <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => onAction('timeout', 60)}>
+                        <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => onAction('timeout', targetUser.uid, 60)}>
                             <Clock className="mr-2 h-4 w-4" /> Timeout 1h
                         </Button>
-                        <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => onAction('timeout', 1440)}>
+                        <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => onAction('timeout', targetUser.uid, 1440)}>
                             <Clock className="mr-2 h-4 w-4" /> Timeout 1d
                         </Button>
                     </>
@@ -388,18 +388,15 @@ export default function ChatPage() {
   
   const handleModerationAction = async (action: 'ban' | 'timeout' | 'unban' | 'updateRoles', targetUserId: string, payload?: any) => {
     try {
-        const idToken = await auth.currentUser?.getIdToken();
-        if (!idToken) throw new Error("Not authenticated");
-
         let result;
         if (action === 'ban') {
-            result = await banUser(idToken, targetUserId);
+            result = await banUser(targetUserId);
         } else if (action === 'timeout') {
-            result = await timeoutUser(idToken, targetUserId, payload as number);
+            result = await timeoutUser(targetUserId, payload as number);
         } else if (action === 'unban') {
-            result = await unbanUser(idToken, targetUserId);
+            result = await unbanUser(targetUserId);
         } else if (action === 'updateRoles') {
-            result = await updateUserRoles(idToken, targetUserId, payload as string[]);
+            result = await updateUserRoles(targetUserId, payload as string[]);
         }
 
 
@@ -712,7 +709,7 @@ export default function ChatPage() {
                                               <ModerationPopoverContent 
                                                 targetUser={targetUser} 
                                                 currentUser={userProfile}
-                                                onAction={(action, payload) => handleModerationAction(action, firstMessage.userId, payload)}
+                                                onAction={(action, userId, payload) => handleModerationAction(action, userId, payload)}
                                               />
                                             </Popover>
                                           )}
@@ -816,4 +813,3 @@ export default function ChatPage() {
     </div>
   );
 }
-
