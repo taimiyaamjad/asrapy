@@ -30,6 +30,7 @@ import {
   UserPlus,
   UserCheck,
   UserX,
+  Trash2,
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
@@ -41,12 +42,23 @@ import { useToast } from '@/hooks/use-toast';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
-import { banUser, timeoutUser, unbanUser, updateUserRoles, sendFriendRequest, acceptFriendRequest, removeFriend } from '../actions';
+import { banUser, timeoutUser, unbanUser, updateUserRoles, sendFriendRequest, acceptFriendRequest, removeFriend, deleteMessage } from '../actions';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Separator } from '@/components/ui/separator';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -260,7 +272,7 @@ export default function ChatPage() {
   const [isChannelsOpen, setChannelsOpen] = useState(false);
   const [isUsersOpen, setUsersOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
+  const [messageToDelete, setMessageToDelete] = useState<{channelType: 'channel' | 'dm', channelId: string, messageId: string} | null>(null);
 
     useEffect(() => {
         if (loading) return;
@@ -464,6 +476,20 @@ export default function ChatPage() {
         toast({ variant: "destructive", title: "Moderation Failed", description: error.message });
     }
   };
+
+    const handleDeleteMessage = async () => {
+        if (!messageToDelete) return;
+        const { channelType, channelId, messageId } = messageToDelete;
+
+        const result = await deleteMessage(channelType, channelId, messageId);
+
+        if (result.success) {
+            toast({ title: 'Success', description: 'Message deleted successfully.' });
+        } else {
+            toast({ variant: 'destructive', title: 'Error', description: result.message });
+        }
+        setMessageToDelete(null);
+    };
 
   const groupMessages = useMemo(() => {
     if (messages.length === 0) return [];
@@ -764,7 +790,7 @@ export default function ChatPage() {
                         const canModerate = userProfile && targetUser && userProfile.uid !== targetUser.uid && moderatorRank < targetRank;
 
                         return (
-                            <div key={groupIndex} className="flex items-start gap-4 py-1.5 hover:bg-gray-900/40 px-2 -mx-2 rounded-md">
+                            <div key={groupIndex} className="group/message-group flex items-start gap-4 py-1.5 hover:bg-gray-900/40 px-2 -mx-2 rounded-md relative">
                                 <div className="w-10 pt-1">
                                     { (groupIndex === 0 || !(groupMessages[groupIndex-1][0] as Message).userId || ((groupMessages[groupIndex-1][0] as Message).userId !== firstMessage.userId)) &&
                                         <div className="relative group">
@@ -809,16 +835,38 @@ export default function ChatPage() {
                                         </div>
                                     }
                                     <div className="flex flex-col">
-                                        {messages.map(msg => (
-                                          <div key={msg.id} className="text-gray-300">
-                                            {msg.text && <p>{msg.text}</p>}
-                                            {msg.imageUrl && (
-                                                <div className="mt-2 max-w-xs">
-                                                    <Image src={msg.imageUrl} alt="Uploaded image" width={300} height={200} className="rounded-md object-cover" />
+                                        {messages.map(msg => {
+                                            const canDelete = user.uid === msg.userId || (targetUser && moderatorRank < getHighestRoleRank(targetUser.roles));
+                                            
+                                            return (
+                                                <div key={msg.id} className="text-gray-300 relative group/message">
+                                                    {msg.text && <p>{msg.text}</p>}
+                                                    {msg.imageUrl && (
+                                                        <div className="mt-2 max-w-xs">
+                                                            <Image src={msg.imageUrl} alt="Uploaded image" width={300} height={200} className="rounded-md object-cover" />
+                                                        </div>
+                                                    )}
+                                                    {canDelete && (
+                                                        <div className="absolute -top-4 right-0 opacity-0 group-hover/message:opacity-100 group-hover/message-group:opacity-100 transition-opacity">
+                                                             <AlertDialogTrigger asChild>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="h-7 w-7 text-red-500 hover:bg-red-500/10"
+                                                                    onClick={() => setMessageToDelete({
+                                                                        channelType: activeChannel.type,
+                                                                        channelId: activeChannel.id,
+                                                                        messageId: msg.id
+                                                                    })}
+                                                                >
+                                                                    <Trash2 className="h-4 w-4" />
+                                                                </Button>
+                                                            </AlertDialogTrigger>
+                                                        </div>
+                                                    )}
                                                 </div>
-                                            )}
-                                          </div>
-                                        ))}
+                                            )
+                                        })}
                                     </div>
                                 </div>
                             </div>
@@ -892,6 +940,22 @@ export default function ChatPage() {
             </SheetContent>
         </Sheet>
       )}
+        <AlertDialog open={!!messageToDelete} onOpenChange={(isOpen) => !isOpen && setMessageToDelete(null)}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Message</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Are you sure you want to delete this message? This action cannot be undone.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteMessage} className="bg-destructive hover:bg-destructive/90">
+                        Delete
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
     </div>
   );
 }

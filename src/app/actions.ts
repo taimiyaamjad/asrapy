@@ -3,7 +3,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/firebase/client';
-import { doc, updateDoc, FieldValue, arrayUnion, arrayRemove, Timestamp } from 'firebase/firestore';
+import { doc, updateDoc, FieldValue, arrayUnion, arrayRemove, Timestamp, deleteDoc } from 'firebase/firestore';
 
 
 export async function banUser(userId: string) {
@@ -125,6 +125,23 @@ export async function removeFriend(userId: string, friendId: string) {
 
         revalidatePath('/chat');
         return { success: true, message: 'Friend removed.' };
+    } catch (error: any) {
+        return { success: false, message: error.message };
+    }
+}
+
+export async function deleteMessage(channelType: 'channel' | 'dm', channelId: string, messageId: string) {
+    try {
+        const collectionPath = channelType === 'channel'
+            ? `channels/${channelId}/messages`
+            : `dms/${channelId}/messages`;
+        
+        const messageDocRef = doc(db, collectionPath, messageId);
+        await deleteDoc(messageDocRef);
+        
+        revalidatePath('/chat');
+        return { success: true, message: 'Message deleted.' };
+
     } catch (error: any) {
         return { success: false, message: error.message };
     }
