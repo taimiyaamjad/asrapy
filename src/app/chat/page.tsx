@@ -159,18 +159,7 @@ const UserProfileCard = ({ userProfile }: { userProfile: UserProfile }) => {
 };
 
 const ModerationPopoverContent = ({ targetUser, currentUser, onAction }: { targetUser: UserProfile, currentUser: UserProfile, onAction: (action: 'ban' | 'timeout' | 'unban' | 'updateRoles', userId: string, payload?: any) => void }) => {
-    const [selectedRoles, setSelectedRoles] = useState(targetUser.roles.filter(r => r !== 'member'));
     
-    const handleRoleChange = (role: string, checked: boolean) => {
-        setSelectedRoles(prev => checked ? [...prev, role] : prev.filter(r => r !== role));
-    };
-
-    const handleSaveChanges = () => {
-        onAction('updateRoles', targetUser.uid, selectedRoles);
-    };
-
-    const manageableRoles = ALL_ROLES.filter(r => r !== 'member');
-
     return (
         <PopoverContent className="w-56 p-2 bg-background-tertiary border-none text-white">
             <div className="flex flex-col gap-1">
@@ -835,3 +824,5 @@ export default function ChatPage() {
     </div>
   );
 }
+
+    
