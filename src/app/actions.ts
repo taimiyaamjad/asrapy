@@ -5,7 +5,6 @@ import { adminAuth, adminDb } from '@/lib/firebase/server';
 import { doc, getDoc, updateDoc, Timestamp, collection, getDocs } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 
-// Define roles and their hierarchy (0 is highest)
 const ALL_ROLES = ['GOD', 'CEO', 'COO', 'Admin', 'Staff', 'Developer', 'VIP', 'Coder', 'member'];
 
 interface UserProfile {
@@ -35,17 +34,23 @@ const hasAdminPower = (roles: string[]): boolean => {
 
 
 // Helper to get authenticated user profile
-async function getVerifiedUserProfile(idToken: string): Promise<UserProfile | null> {
+async function getVerifiedUserProfile(idToken: string): Promise<UserProfile> {
   try {
     const decodedToken = await adminAuth.verifyIdToken(idToken);
-    const userDoc = await getDoc(doc(adminDb, 'users', decodedToken.uid));
+    const userDocRef = doc(adminDb, 'users', decodedToken.uid);
+    const userDoc = await getDoc(userDocRef);
+
     if (userDoc.exists()) {
       return userDoc.data() as UserProfile;
+    } else {
+      // This is a critical error: user is authenticated but has no profile in DB.
+      throw new Error('User profile not found in database.');
     }
   } catch (error) {
     console.error("Error verifying token or getting user:", error);
+    // Re-throw the error to be caught by the calling server action
+    throw new Error('Failed to verify user identity.');
   }
-  return null;
 }
 
 // Check if a user can moderate another user
@@ -59,7 +64,7 @@ const canModerate = (moderator: UserProfile, target: UserProfile): boolean => {
 
 export async function banUser(idToken: string, userId: string) {
   const moderator = await getVerifiedUserProfile(idToken);
-  if (!moderator || !hasAdminPower(moderator.roles)) {
+  if (!hasAdminPower(moderator.roles)) {
     throw new Error('Unauthorized: You must be an admin to perform this action.');
   }
 
@@ -88,7 +93,7 @@ export async function banUser(idToken: string, userId: string) {
 
 export async function timeoutUser(idToken: string, userId: string, durationMinutes: number) {
   const moderator = await getVerifiedUserProfile(idToken);
-  if (!moderator || !hasAdminPower(moderator.roles)) {
+  if (!hasAdminPower(moderator.roles)) {
     throw new Error('Unauthorized: You must be an admin to perform this action.');
   }
 
@@ -117,7 +122,7 @@ export async function timeoutUser(idToken: string, userId: string, durationMinut
 
 export async function unbanUser(idToken: string, userId: string) {
   const moderator = await getVerifiedUserProfile(idToken);
-   if (!moderator || !hasAdminPower(moderator.roles)) {
+   if (!hasAdminPower(moderator.roles)) {
     throw new Error('Unauthorized: You must be an admin to perform this action.');
   }
 
@@ -146,7 +151,7 @@ export async function unbanUser(idToken: string, userId: string) {
 
 export async function updateUserRoles(idToken: string, userId: string, newRoles: string[]) {
     const moderator = await getVerifiedUserProfile(idToken);
-    if (!moderator || !hasAdminPower(moderator.roles)) {
+    if (!hasAdminPower(moderator.roles)) {
         throw new Error('Unauthorized: You must be an admin to perform this action.');
     }
 
