@@ -158,7 +158,7 @@ const UserProfileCard = ({ userProfile }: { userProfile: UserProfile }) => {
     );
 };
 
-const ModerationPopoverContent = ({ targetUser, currentUser, onAction }: { targetUser: UserProfile, currentUser: UserProfile, onAction: (action: 'ban' | 'timeout' | 'unban' | 'updateRoles', userId: string, payload?: any) => void }) => {
+const ModerationPopoverContent = ({ targetUser, onAction }: { targetUser: UserProfile, onAction: (action: 'ban' | 'timeout' | 'unban', userId: string, payload?: any) => void }) => {
     
     return (
         <PopoverContent className="w-56 p-2 bg-background-tertiary border-none text-white">
@@ -393,7 +393,7 @@ export default function ChatPage() {
        if (isMobile) setChannelsOpen(false);
   };
   
-  const handleModerationAction = async (action: 'ban' | 'timeout' | 'unban' | 'updateRoles', targetUserId: string, payload?: any) => {
+  const handleModerationAction = async (action: 'ban' | 'timeout' | 'unban', targetUserId: string, payload?: any) => {
     if (!user) {
       toast({ variant: "destructive", title: "Authentication Error", description: "You must be logged in to perform this action." });
       return;
@@ -407,8 +407,6 @@ export default function ChatPage() {
             result = await timeoutUser(targetUserId, payload as number);
         } else if (action === 'unban') {
             result = await unbanUser(targetUserId);
-        } else if (action === 'updateRoles') {
-            result = await updateUserRoles(targetUserId, payload as string[]);
         }
 
         if (result?.success) {
@@ -710,7 +708,7 @@ export default function ChatPage() {
                                                 )}
                                            </Popover>
                                           
-                                          {canModerate && targetUser && userProfile && (
+                                          {canModerate && targetUser && (
                                             <Popover>
                                               <PopoverTrigger asChild>
                                                   <button className="absolute inset-0 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -719,8 +717,7 @@ export default function ChatPage() {
                                               </PopoverTrigger>
                                               <ModerationPopoverContent 
                                                 targetUser={targetUser} 
-                                                currentUser={userProfile}
-                                                onAction={(action, userId, payload) => handleModerationAction(action, userId, payload)}
+                                                onAction={handleModerationAction}
                                               />
                                             </Popover>
                                           )}
