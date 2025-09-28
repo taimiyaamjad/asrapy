@@ -37,7 +37,11 @@ async function getAdminUserWithProfile(): Promise<UserProfile | null> {
       const decodedToken = await adminAuth.verifyIdToken(idToken);
       const userDoc = await getDoc(doc(adminDb, 'users', decodedToken.uid));
       if (userDoc.exists()) {
-        return userDoc.data() as UserProfile;
+        const userProfile = userDoc.data() as UserProfile;
+        // Check if the user has any role other than 'member'
+        if (userProfile.roles && userProfile.roles.some(role => role !== 'member')) {
+            return userProfile;
+        }
       }
     } catch (error) {
       console.error("Error verifying token or getting user:", error);
