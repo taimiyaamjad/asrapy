@@ -17,6 +17,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { formatDistanceToNow } from "date-fns";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -84,17 +85,30 @@ export default function LoginPage() {
       const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
       const user = userCredential.user;
 
-      // Check if user is banned
+      // Check if user is banned or timed out
       const userDocRef = doc(db, 'users', user.uid);
       const userDoc = await getDoc(userDocRef);
-      if (userDoc.exists() && userDoc.data().isBanned) {
-        await auth.signOut(); // Log them out immediately
-        toast({
-          variant: 'destructive',
-          title: 'Login Failed',
-          description: 'This account has been banned.',
-        });
-        return;
+      if (userDoc.exists()) {
+          const userData = userDoc.data();
+          if (userData.isBanned) {
+            await auth.signOut(); // Log them out immediately
+            toast({
+              variant: 'destructive',
+              title: 'Login Failed',
+              description: 'This account has been permanently banned.',
+            });
+            return;
+          }
+          if (userData.timeoutUntil && userData.timeoutUntil.toDate() > new Date()) {
+              const timeLeft = formatDistanceToNow(userData.timeoutUntil.toDate(), { addSuffix: true });
+              await auth.signOut();
+              toast({
+                variant: 'destructive',
+                title: 'Login Failed',
+                description: `You are in a timeout. You can log in again ${timeLeft}.`,
+              });
+              return;
+          }
       }
       
       router.push("/chat");

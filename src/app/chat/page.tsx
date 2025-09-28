@@ -231,7 +231,14 @@ export default function ChatPage() {
         const userDocRef = doc(db, 'users', user.uid);
         const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
             if (docSnap.exists()) {
-                setUserProfile(docSnap.data() as UserProfile);
+                const userData = docSnap.data() as UserProfile;
+                 if (userData.isBanned) {
+                    toast({ variant: 'destructive', title: 'Account Banned', description: 'Your account has been permanently banned.' });
+                    auth.signOut();
+                    router.push('/login');
+                    return;
+                }
+                setUserProfile(userData);
             }
         });
 
@@ -260,7 +267,7 @@ export default function ChatPage() {
             unsubscribeMessages();
             unsubscribeAllUsers();
         };
-    }, [user, loading, router, activeChannel]);
+    }, [user, loading, router, activeChannel, toast]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
