@@ -391,37 +391,17 @@ export default function ChatPage() {
         const idToken = await auth.currentUser?.getIdToken();
         if (!idToken) throw new Error("Not authenticated");
 
-        // The key fix: We need to use fetch and pass the token in headers for server actions
-        const callServerAction = async (actionFn: Function, args: any) => {
-          const res = await fetch('/chat', { // This path doesn't really matter as Next.js intercepts it
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${idToken}`,
-            },
-            body: JSON.stringify({
-              // This is a common pattern, but we're calling the function directly
-              // and letting Next.js handle the RPC. The key is the header.
-            }),
-            next: {
-              // This is how you're supposed to tag actions
-              tags: [actionFn.name]
-            }
-          });
-          // This fetch is just to ensure headers are sent. The direct call below is what works.
-          return actionFn(args);
-        }
-
         let result;
         if (action === 'ban') {
-            result = await banUser(targetUserId);
+            result = await banUser(idToken, targetUserId);
         } else if (action === 'timeout') {
-            result = await timeoutUser(targetUserId, payload as number);
+            result = await timeoutUser(idToken, targetUserId, payload as number);
         } else if (action === 'unban') {
-            result = await unbanUser(targetUserId);
+            result = await unbanUser(idToken, targetUserId);
         } else if (action === 'updateRoles') {
-            result = await updateUserRoles(targetUserId, payload as string[]);
+            result = await updateUserRoles(idToken, targetUserId, payload as string[]);
         }
+
 
         if (result?.success) {
             toast({ title: "Success", description: result.message });

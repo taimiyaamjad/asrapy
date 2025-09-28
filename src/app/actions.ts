@@ -29,23 +29,19 @@ const getHighestRoleRank = (roles: string[]): number => {
 
 
 // Helper to get authenticated user profile and check permissions
-async function getAdminUserWithProfile(): Promise<UserProfile | null> {
-  const authorization = headers().get('Authorization');
-  if (authorization?.startsWith('Bearer ')) {
-    const idToken = authorization.split('Bearer ')[1];
-    try {
-      const decodedToken = await adminAuth.verifyIdToken(idToken);
-      const userDoc = await getDoc(doc(adminDb, 'users', decodedToken.uid));
-      if (userDoc.exists()) {
-        const userProfile = userDoc.data() as UserProfile;
-        // Check if the user has any role other than 'member'
-        if (userProfile.roles && userProfile.roles.some(role => role !== 'member')) {
-            return userProfile;
-        }
+async function getAdminUserWithProfile(idToken: string): Promise<UserProfile | null> {
+  try {
+    const decodedToken = await adminAuth.verifyIdToken(idToken);
+    const userDoc = await getDoc(doc(adminDb, 'users', decodedToken.uid));
+    if (userDoc.exists()) {
+      const userProfile = userDoc.data() as UserProfile;
+      // Check if the user has any role other than 'member'
+      if (userProfile.roles && userProfile.roles.some(role => role !== 'member')) {
+          return userProfile;
       }
-    } catch (error) {
-      console.error("Error verifying token or getting user:", error);
     }
+  } catch (error) {
+    console.error("Error verifying token or getting user:", error);
   }
   return null;
 }
@@ -59,8 +55,8 @@ const canModerate = (moderator: UserProfile, target: UserProfile): boolean => {
 };
 
 
-export async function banUser(userId: string) {
-  const moderator = await getAdminUserWithProfile();
+export async function banUser(idToken: string, userId: string) {
+  const moderator = await getAdminUserWithProfile(idToken);
   if (!moderator) {
     throw new Error('Unauthorized: You must be an admin to perform this action.');
   }
@@ -88,8 +84,8 @@ export async function banUser(userId: string) {
   }
 }
 
-export async function timeoutUser(userId: string, durationMinutes: number) {
-  const moderator = await getAdminUserWithProfile();
+export async function timeoutUser(idToken: string, userId: string, durationMinutes: number) {
+  const moderator = await getAdminUserWithProfile(idToken);
   if (!moderator) {
     throw new Error('Unauthorized: You must be an admin to perform this action.');
   }
@@ -117,8 +113,8 @@ export async function timeoutUser(userId: string, durationMinutes: number) {
   }
 }
 
-export async function unbanUser(userId: string) {
-  const moderator = await getAdminUserWithProfile();
+export async function unbanUser(idToken: string, userId: string) {
+  const moderator = await getAdminUserWithProfile(idToken);
    if (!moderator) {
     throw new Error('Unauthorized: You must be an admin to perform this action.');
   }
@@ -146,8 +142,8 @@ export async function unbanUser(userId: string) {
   }
 }
 
-export async function updateUserRoles(userId: string, newRoles: string[]) {
-    const moderator = await getAdminUserWithProfile();
+export async function updateUserRoles(idToken: string, userId: string, newRoles: string[]) {
+    const moderator = await getAdminUserWithProfile(idToken);
     if (!moderator) {
         throw new Error('Unauthorized: You must be an admin to perform this action.');
     }
