@@ -3,7 +3,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/firebase/client';
-import { doc, updateDoc, arrayUnion, arrayRemove, Timestamp, deleteDoc, FieldValue } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, arrayRemove, Timestamp, deleteDoc, FieldValue, deleteField } from 'firebase/firestore';
 
 
 export async function banUser(userId: string) {
@@ -97,11 +97,11 @@ export async function acceptFriendRequest(userId: string, requesterId: string) {
 
         await updateDoc(userDocRef, {
             friends: arrayUnion(requesterId),
-            [`friendRequests.${requesterId}`]: FieldValue.delete()
+            [`friendRequests.${requesterId}`]: deleteField()
         });
         await updateDoc(requesterDocRef, {
             friends: arrayUnion(userId),
-            [`friendRequests.${userId}`]: FieldValue.delete()
+            [`friendRequests.${userId}`]: deleteField()
         });
 
         revalidatePath('/chat');
@@ -120,11 +120,11 @@ export async function removeFriend(userId: string, friendId: string) {
         // This action can be used to remove a friend OR decline/cancel a request
         await updateDoc(userDocRef, {
             friends: arrayRemove(friendId),
-            [`friendRequests.${friendId}`]: FieldValue.delete()
+            [`friendRequests.${friendId}`]: deleteField()
         });
         await updateDoc(friendDocRef, {
             friends: arrayRemove(userId),
-            [`friendRequests.${userId}`]: FieldValue.delete()
+            [`friendRequests.${userId}`]: deleteField()
         });
 
 
@@ -152,3 +152,4 @@ export async function deleteMessage(channelType: 'channel' | 'dm', channelId: st
         return { success: false, message: error.message };
     }
 }
+
