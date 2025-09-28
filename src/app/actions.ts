@@ -7,7 +7,7 @@ import { headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 
 // Define roles and their hierarchy (0 is highest)
-export const ALL_ROLES = ['GOD', 'CEO', 'COO', 'Admin', 'Staff', 'Developer', 'VIP', 'Coder', 'member'];
+const ALL_ROLES = ['GOD', 'CEO', 'COO', 'Admin', 'Staff', 'Developer', 'VIP', 'Coder', 'member'];
 
 interface UserProfile {
     uid: string;
