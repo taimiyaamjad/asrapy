@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useAuth } from '@/context/auth-context';
@@ -31,6 +32,7 @@ import {
   UserCheck,
   UserX,
   Trash2,
+  MessageSquareReply,
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
@@ -88,6 +90,11 @@ interface Message {
     userId: string;
     displayName: string | null;
     photoURL: string | null;
+    replyTo?: {
+        messageId: string;
+        text: string | null;
+        displayName: string | null;
+    };
 }
 
 export interface UserProfile {
@@ -273,6 +280,7 @@ export default function ChatPage() {
   const [isUsersOpen, setUsersOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [messageToDelete, setMessageToDelete] = useState<{channelType: 'channel' | 'dm', channelId: string, messageId: string} | null>(null);
+  const [replyToMessage, setReplyToMessage] = useState<Message | null>(null);
 
     useEffect(() => {
         if (loading) return;
@@ -404,7 +412,7 @@ export default function ChatPage() {
         ? `channels/${activeChannel.id}/messages`
         : `dms/${activeChannel.id}/messages`;
 
-    const messageData = {
+    const messageData: any = {
       text: newMessage.trim() || null,
       imageUrl: imageUrl,
       createdAt: serverTimestamp(),
@@ -412,6 +420,14 @@ export default function ChatPage() {
       displayName: user.displayName || user.email,
       photoURL: user.photoURL,
     };
+    
+    if (replyToMessage) {
+        messageData.replyTo = {
+            messageId: replyToMessage.id,
+            text: replyToMessage.text,
+            displayName: replyToMessage.displayName,
+        };
+    }
 
     await addDoc(collection(db, collectionPath), messageData);
 
@@ -431,6 +447,7 @@ export default function ChatPage() {
     setNewMessage('');
     clearImagePreview();
     setIsUploading(false);
+    setReplyToMessage(null);
   };
   
   const handleChannelSelect = (id: string, name: string) => {
@@ -517,7 +534,7 @@ export default function ChatPage() {
             ? (messageDate.getTime() - messages[index-1].createdAt.toDate().getTime()) / (1000 * 60)
             : Infinity;
 
-        if (msg.userId === lastUserId && timeSinceLastMessage < 5) {
+        if (msg.userId === lastUserId && timeSinceLastMessage < 5 && !msg.replyTo) {
             messageGroup.push(msg);
         } else {
             if (messageGroup.length > 0) {
@@ -780,6 +797,8 @@ export default function ChatPage() {
                             const displayName = firstMessage.displayName || 'User';
                             const photoURL = firstMessage.photoURL || '';
                             const fallback = (displayName).charAt(0);
+                            
+                            const isNewAuthor = groupIndex === 0 || !(groupMessages[groupIndex-1][0] as Message).userId || ((groupMessages[groupIndex-1][0] as Message).userId !== firstMessage.userId) || firstMessage.replyTo;
 
                             const targetUser = allUsers.find(u => u.uid === firstMessage.userId);
                             const moderatorRoles = userProfile?.roles || [];
@@ -791,9 +810,9 @@ export default function ChatPage() {
                             const canModerate = userProfile && targetUser && userProfile.uid !== targetUser.uid && moderatorRank < targetRank;
 
                             return (
-                                <div key={groupIndex} className="group/message-group flex items-start gap-4 py-1.5 hover:bg-gray-900/40 px-2 -mx-2 rounded-md relative">
+                                <div key={groupIndex} className={`group/message-group flex items-start gap-4 py-0.5 hover:bg-gray-900/40 px-2 -mx-2 rounded-md relative ${isNewAuthor ? 'mt-3' : ''}`}>
                                     <div className="w-10 pt-1">
-                                        { (groupIndex === 0 || !(groupMessages[groupIndex-1][0] as Message).userId || ((groupMessages[groupIndex-1][0] as Message).userId !== firstMessage.userId)) &&
+                                        { isNewAuthor &&
                                             <div className="relative group">
                                                 <Popover>
                                                     <PopoverTrigger asChild>
@@ -826,7 +845,7 @@ export default function ChatPage() {
                                         }
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        {(groupIndex === 0 || !messages[0].createdAt || !groupMessages[groupIndex-1][0] || !('createdAt' in groupMessages[groupIndex-1][0]) || ((groupMessages[groupIndex-1][0] as Message).userId !== firstMessage.userId)) &&
+                                        {isNewAuthor &&
                                             <div className="flex items-center gap-2">
                                                 <p className="font-medium text-white">{displayName}</p>
                                                 {targetUser && hasAdminPower(targetUser.roles) && <BadgeCheck className="h-4 w-4 text-blue-500" />}
@@ -841,14 +860,29 @@ export default function ChatPage() {
                                                 
                                                 return (
                                                     <div key={msg.id} className="text-gray-300 relative group/message">
+                                                        {msg.replyTo && (
+                                                            <div className="flex items-center text-xs text-muted-foreground mb-1 p-1 rounded-md bg-background-secondary/50 w-fit">
+                                                                <MessageSquareReply className="h-3 w-3 mr-2" />
+                                                                <span className="font-semibold text-white mr-1">{msg.replyTo.displayName}</span>
+                                                                <span className="truncate max-w-[200px]">{msg.replyTo.text}</span>
+                                                            </div>
+                                                        )}
                                                         {msg.text && <p>{msg.text}</p>}
                                                         {msg.imageUrl && (
                                                             <div className="mt-2 max-w-xs">
                                                                 <Image src={msg.imageUrl} alt="Uploaded image" width={300} height={200} className="rounded-md object-cover" />
                                                             </div>
                                                         )}
-                                                        {canDelete && (
-                                                            <div className="absolute -top-4 right-0 opacity-0 group-hover/message:opacity-100 group-hover/message-group:opacity-100 transition-opacity">
+                                                        <div className="absolute -top-4 right-0 opacity-0 group-hover/message:opacity-100 group-hover/message-group:opacity-100 transition-opacity flex items-center bg-background-tertiary p-1 rounded-md shadow-lg">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-7 w-7 text-gray-300 hover:text-white"
+                                                                onClick={() => setReplyToMessage(msg)}
+                                                            >
+                                                                <MessageSquareReply className="h-4 w-4" />
+                                                            </Button>
+                                                            {canDelete && (
                                                                 <AlertDialogTrigger asChild>
                                                                     <Button
                                                                         variant="ghost"
@@ -863,8 +897,8 @@ export default function ChatPage() {
                                                                         <Trash2 className="h-4 w-4" />
                                                                     </Button>
                                                                 </AlertDialogTrigger>
-                                                            </div>
-                                                        )}
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 )
                                             })}
@@ -879,6 +913,14 @@ export default function ChatPage() {
                 </ScrollArea>
                 <div className="px-4 md:px-6 pb-6">
                     <div className="w-full bg-background-modifier-accent rounded-lg">
+                    {replyToMessage && (
+                        <div className="p-2 border-b border-background-tertiary text-sm text-muted-foreground flex justify-between items-center">
+                            <span>Replying to <span className="font-semibold text-white">{replyToMessage.displayName}</span></span>
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setReplyToMessage(null)}>
+                                <X className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    )}
                     {imagePreview && (
                         <div className="relative p-4 border-b border-background-tertiary">
                         <div className="relative w-fit">
@@ -959,5 +1001,7 @@ export default function ChatPage() {
     </AlertDialog>
   );
 }
+
+    
 
     
