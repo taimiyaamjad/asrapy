@@ -72,6 +72,8 @@ export default function LoginPage() {
         isBanned: false,
         timeoutUntil: null,
         bio: "",
+        friends: [],
+        friendRequests: {},
       }, { merge: true });
       router.push("/chat");
     } catch (error) {
@@ -134,6 +136,8 @@ export default function LoginPage() {
         isBanned: false,
         timeoutUntil: null,
         bio: "",
+        friends: [],
+        friendRequests: {},
       });
 
       router.push("/chat");

@@ -2,7 +2,7 @@
 "use server";
 
 import { adminDb } from '@/lib/firebase/server';
-import { doc, updateDoc, Timestamp } from 'firebase/firestore';
+import { doc, updateDoc, Timestamp, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 
 export async function banUser(userId: string) {
@@ -47,7 +47,6 @@ export async function unbanUser(userId: string) {
 }
 
 export async function updateUserRoles(userId: string, newRoles: string[]) {
-    // Ensure 'member' is always present if no other roles are selected
     if (newRoles.length === 0) {
         newRoles.push('member');
     } else if (!newRoles.includes('member')){
@@ -61,6 +60,65 @@ export async function updateUserRoles(userId: string, newRoles: string[]) {
         });
         revalidatePath('/chat');
         return { success: true, message: "User roles updated successfully." };
+    } catch (error: any) {
+        return { success: false, message: error.message };
+    }
+}
+
+export async function sendFriendRequest(requesterId: string, recipientId: string) {
+    try {
+        const requesterDocRef = doc(adminDb, 'users', requesterId);
+        const recipientDocRef = doc(adminDb, 'users', recipientId);
+
+        await updateDoc(requesterDocRef, {
+            [`friendRequests.${recipientId}`]: 'sent'
+        });
+        await updateDoc(recipientDocRef, {
+            [`friendRequests.${requesterId}`]: 'received'
+        });
+
+        revalidatePath('/chat');
+        return { success: true, message: 'Friend request sent.' };
+    } catch (error: any) {
+        return { success: false, message: error.message };
+    }
+}
+
+export async function acceptFriendRequest(userId: string, requesterId: string) {
+    try {
+        const userDocRef = doc(adminDb, 'users', userId);
+        const requesterDocRef = doc(adminDb, 'users', requesterId);
+
+        await updateDoc(userDocRef, {
+            friends: arrayUnion(requesterId),
+            [`friendRequests.${requesterId}`]: null 
+        });
+        await updateDoc(requesterDocRef, {
+            friends: arrayUnion(userId),
+            [`friendRequests.${userId}`]: null
+        });
+
+        revalidatePath('/chat');
+        return { success: true, message: 'Friend request accepted.' };
+    } catch (error: any) {
+        return { success: false, message: error.message };
+    }
+}
+
+export async function removeFriend(userId: string, friendId: string) {
+    try {
+        const userDocRef = doc(adminDb, 'users', userId);
+        const friendDocRef = doc(adminDb, 'users', friendId);
+
+        await updateDoc(userDocRef, {
+            friends: arrayRemove(friendId)
+        });
+        await updateDoc(friendDocRef, {
+            friends: arrayRemove(userId)
+        });
+
+        revalidatePath('/chat');
+        return { success: true, message: 'Friend removed.' };
     } catch (error: any) {
         return { success: false, message: error.message };
     }

@@ -27,6 +27,9 @@ import {
   Crown,
   Shield,
   UserCog,
+  UserPlus,
+  UserCheck,
+  UserX,
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
@@ -38,7 +41,7 @@ import { useToast } from '@/hooks/use-toast';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
-import { banUser, timeoutUser, unbanUser, updateUserRoles } from '../actions';
+import { banUser, timeoutUser, unbanUser, updateUserRoles, sendFriendRequest, acceptFriendRequest, removeFriend } from '../actions';
 import {
   Popover,
   PopoverContent,
@@ -85,6 +88,8 @@ interface UserProfile {
     isBanned?: boolean;
     timeoutUntil?: Timestamp | null;
     unreadDMs?: { [key: string]: number };
+    friends?: string[];
+    friendRequests?: { [key: string]: 'sent' | 'received' };
 }
 
 interface ActiveChannelInfo {
@@ -123,7 +128,44 @@ const hasAdminPower = (roles: string[]): boolean => {
     return (roles || []).some(role => ['GOD', 'CEO', 'COO', 'Admin'].includes(role));
 };
 
-const UserProfileCard = ({ userProfile }: { userProfile: UserProfile }) => {
+const UserProfileCard = ({ userProfile, currentUser }: { userProfile: UserProfile, currentUser: UserProfile }) => {
+    const { toast } = useToast();
+    const friendshipStatus = useMemo(() => {
+        if (currentUser.friends?.includes(userProfile.uid)) {
+            return 'friends';
+        }
+        if (currentUser.friendRequests?.[userProfile.uid] === 'sent') {
+            return 'sent';
+        }
+        if (currentUser.friendRequests?.[userProfile.uid] === 'received') {
+            return 'received';
+        }
+        return 'none';
+    }, [currentUser, userProfile]);
+
+    const handleFriendAction = async () => {
+        if (!currentUser) return;
+
+        let result;
+        try {
+            if (friendshipStatus === 'none') {
+                result = await sendFriendRequest(currentUser.uid, userProfile.uid);
+            } else if (friendshipStatus === 'received') {
+                result = await acceptFriendRequest(currentUser.uid, userProfile.uid);
+            } else if (friendshipStatus === 'friends') {
+                // Consider adding a confirmation dialog here
+                result = await removeFriend(currentUser.uid, userProfile.uid);
+            }
+            if (result?.success) {
+                toast({ title: "Success", description: result.message });
+            } else {
+                throw new Error(result?.message || 'An unknown error occurred.');
+            }
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Error', description: error.message });
+        }
+    };
+    
     return (
         <div className="bg-background-tertiary rounded-lg overflow-hidden">
             <div className="h-20 bg-accent" />
@@ -153,6 +195,16 @@ const UserProfileCard = ({ userProfile }: { userProfile: UserProfile }) => {
                          ))}
                     </div>
                 </div>
+                {currentUser.uid !== userProfile.uid && (
+                    <div>
+                        <Button className="w-full" onClick={handleFriendAction}>
+                            {friendshipStatus === 'none' && <><UserPlus className="mr-2 h-4 w-4" /> Add Friend</>}
+                            {friendshipStatus === 'sent' && <>Request Sent</>}
+                            {friendshipStatus === 'received' && <><UserCheck className="mr-2 h-4 w-4" /> Accept Request</>}
+                            {friendshipStatus === 'friends' && <><UserX className="mr-2 h-4 w-4" /> Remove Friend</>}
+                        </Button>
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -379,18 +431,12 @@ export default function ChatPage() {
       const dmChannelId = [user.uid, peer.uid].sort().join('_');
       setActiveChannel({ id: dmChannelId, name: peer.displayName, type: 'dm' });
 
-      // Reset unread count
       const userDocRef = doc(db, 'users', user.uid);
-      const userDoc = await getDoc(userDocRef);
-       if (userDoc.exists()) {
-           const userData = userDoc.data() as UserProfile;
-           if (userData.unreadDMs && userData.unreadDMs[dmChannelId]) {
-                await updateDoc(userDocRef, {
-                    [`unreadDMs.${dmChannelId}`]: 0
-                });
-           }
-       }
-       if (isMobile) setChannelsOpen(false);
+      await updateDoc(userDocRef, {
+          [`unreadDMs.${dmChannelId}`]: 0
+      });
+
+      if (isMobile) setChannelsOpen(false);
   };
   
   const handleModerationAction = async (action: 'ban' | 'timeout' | 'unban', targetUserId: string, payload?: any) => {
@@ -487,6 +533,11 @@ export default function ChatPage() {
 
   }, [allUsers, user]);
 
+  const friends = useMemo(() => {
+      if (!userProfile || !userProfile.friends) return [];
+      return allUsers.filter(u => userProfile.friends!.includes(u.uid));
+  }, [userProfile, allUsers]);
+
   if (loading || !user || !userProfile) {
     return (
       <div className="flex items-center justify-center h-screen w-full bg-background-tertiary text-white">
@@ -500,7 +551,6 @@ export default function ChatPage() {
     ? (activeChannel.type === 'channel' ? `Message #${activeChannel.name}` : `Message @${activeChannel.name}`)
     : `You cannot post in #${activeChannel.name}`;
     
-  const otherUsers = allUsers.filter(u => u.uid !== user.uid);
   const dmUnreadCounts = userProfile?.unreadDMs || {};
 
   const ChannelsComponent = () => (
@@ -538,22 +588,22 @@ export default function ChatPage() {
                 ))}
             </div>
              <div className="px-2 mt-4 space-y-1">
-                <p className='text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2'>Direct Messages</p>
-                {otherUsers.map(dmUser => (
+                <p className='text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2'>Friends</p>
+                {friends.map(friend => (
                     <Button 
-                        key={dmUser.uid} 
-                        variant={activeChannel.type === 'dm' && activeChannel.name === dmUser.displayName ? "channel-active" : "channel"} 
+                        key={friend.uid} 
+                        variant={activeChannel.type === 'dm' && activeChannel.name === friend.displayName ? "channel-active" : "channel"} 
                         className="w-full justify-start gap-2 relative"
-                        onClick={() => handleDMSelect(dmUser)}
+                        onClick={() => handleDMSelect(friend)}
                     >
                         <Avatar className="h-8 w-8">
-                            <AvatarImage src={dmUser.photoURL || undefined} alt={dmUser.displayName} />
-                            <AvatarFallback>{(dmUser.displayName || 'U').charAt(0)}</AvatarFallback>
+                            <AvatarImage src={friend.photoURL || undefined} alt={friend.displayName} />
+                            <AvatarFallback>{(friend.displayName || 'U').charAt(0)}</AvatarFallback>
                         </Avatar>
-                        <span className="truncate">{dmUser.displayName}</span>
-                        {dmUnreadCounts[[user!.uid, dmUser.uid].sort().join('_')] > 0 && (
+                        <span className="truncate">{friend.displayName}</span>
+                        {dmUnreadCounts[[user!.uid, friend.uid].sort().join('_')] > 0 && (
                             <div className="absolute right-3 top-1/2 -translate-y-1/2 bg-red-600 text-white text-xs font-bold rounded-full h-5 min-w-[20px] flex items-center justify-center px-1.5">
-                                {dmUnreadCounts[[user!.uid, dmUser.uid].sort().join('_')]}
+                                {dmUnreadCounts[[user!.uid, friend.uid].sort().join('_')]}
                             </div>
                         )}
                     </Button>
@@ -599,7 +649,7 @@ export default function ChatPage() {
                                     </div>
                                 </PopoverTrigger>
                                 <PopoverContent side="left" className="w-80 p-0 border-none bg-transparent">
-                                    <UserProfileCard userProfile={u} />
+                                    <UserProfileCard userProfile={u} currentUser={userProfile} />
                                 </PopoverContent>
                             </Popover>
                         ))}
@@ -633,7 +683,11 @@ export default function ChatPage() {
                     <Menu className="h-6 w-6"/>
                 </Button>
               )}
-              <span className="text-muted-foreground text-2xl font-light">#</span>
+              {activeChannel.type === 'channel' ? (
+                <span className="text-muted-foreground text-2xl font-light">#</span>
+              ) : (
+                <span className="text-muted-foreground text-2xl font-light">@</span>
+              )}
               <h2 className="text-lg font-semibold text-white">
                 {activeChannel.name}
               </h2>
@@ -659,7 +713,7 @@ export default function ChatPage() {
                 <div className="px-4 md:px-6 pt-6 pb-2 flex flex-col gap-0">
                    {groupMessages.length === 0 ? (
                       <div className="text-center text-muted-foreground mt-8">
-                          <p>This is the beginning of your conversation in #{activeChannel.name}.</p>
+                          <p>This is the beginning of your conversation in {activeChannel.type === 'channel' ? '#' : '@'}{activeChannel.name}.</p>
                       </div>
                    ) : (
                       groupMessages.map((group, groupIndex) => {
@@ -687,7 +741,7 @@ export default function ChatPage() {
                         const moderatorRank = getHighestRoleRank(moderatorRoles);
                         const targetRank = getHighestRoleRank(targetRoles);
                         
-                        const canModerate = userProfile && targetUser && moderatorRank < targetRank;
+                        const canModerate = userProfile && targetUser && userProfile.uid !== targetUser.uid && moderatorRank < targetRank;
 
                         return (
                             <div key={groupIndex} className="flex items-start gap-4 py-1.5 hover:bg-gray-900/40 px-2 -mx-2 rounded-md">
@@ -703,7 +757,7 @@ export default function ChatPage() {
                                                 </PopoverTrigger>
                                                 {targetUser && (
                                                 <PopoverContent side="top" className="w-80 p-0 border-none bg-transparent">
-                                                    <UserProfileCard userProfile={targetUser} />
+                                                    <UserProfileCard userProfile={targetUser} currentUser={userProfile} />
                                                 </PopoverContent>
                                                 )}
                                            </Popover>
