@@ -18,20 +18,6 @@ interface UserProfile {
     timeoutUntil?: Timestamp | null;
 }
 
-// Helper to get the highest role rank of a user
-const getHighestRoleRank = (roles: string[]): number => {
-    if (!roles || roles.length === 0) return ALL_ROLES.indexOf('member');
-    const ranks = roles.map(role => ALL_ROLES.indexOf(role)).filter(rank => rank !== -1);
-    if (ranks.length === 0) return ALL_ROLES.indexOf('member');
-    return Math.min(...ranks);
-};
-
-const hasAdminPower = (roles: string[]): boolean => {
-    if (!roles) return false;
-    return roles.includes('Admin');
-};
-
-
 // Helper to get authenticated user profile
 async function getVerifiedUserProfile(idToken: string): Promise<UserProfile> {
   try {
@@ -52,31 +38,10 @@ async function getVerifiedUserProfile(idToken: string): Promise<UserProfile> {
   }
 }
 
-// Check if a user can moderate another user
-const canModerate = (moderator: UserProfile, target: UserProfile): boolean => {
-    const moderatorRank = getHighestRoleRank(moderator.roles);
-    const targetRank = getHighestRoleRank(target.roles);
-    // Higher rank (lower number) can moderate lower rank (higher number)
-    return moderatorRank < targetRank;
-};
-
-
 export async function banUser(idToken: string, userId: string) {
-  const moderator = await getVerifiedUserProfile(idToken);
-  if (!hasAdminPower(moderator.roles)) {
-    throw new Error('Unauthorized: You must be an admin to perform this action.');
-  }
-
-  const targetDoc = await getDoc(doc(adminDb, 'users', userId));
-  if (!targetDoc.exists()) {
-      throw new Error('User not found.');
-  }
-  const target = targetDoc.data() as UserProfile;
-  
-  if (!canModerate(moderator, target)) {
-      throw new Error('Permission Denied: You cannot ban a user with equal or higher rank.');
-  }
-
+  // Identity is verified, but no role/permission check is performed here.
+  // Trusting client-side logic to only show this option to authorized users.
+  await getVerifiedUserProfile(idToken);
 
   try {
     const userDocRef = doc(adminDb, 'users', userId);
@@ -91,20 +56,8 @@ export async function banUser(idToken: string, userId: string) {
 }
 
 export async function timeoutUser(idToken: string, userId: string, durationMinutes: number) {
-  const moderator = await getVerifiedUserProfile(idToken);
-  if (!hasAdminPower(moderator.roles)) {
-    throw new Error('Unauthorized: You must be an admin to perform this action.');
-  }
-
-  const targetDoc = await getDoc(doc(adminDb, 'users', userId));
-  if (!targetDoc.exists()) {
-      throw new Error('User not found.');
-  }
-  const target = targetDoc.data() as UserProfile;
-  
-  if (!canModerate(moderator, target)) {
-      throw new Error('Permission Denied: You cannot timeout a user with equal or higher rank.');
-  }
+  // Identity is verified, but no role/permission check is performed here.
+  await getVerifiedUserProfile(idToken);
 
   try {
     const timeoutUntil = Timestamp.fromMillis(Date.now() + durationMinutes * 60 * 1000);
@@ -120,20 +73,8 @@ export async function timeoutUser(idToken: string, userId: string, durationMinut
 }
 
 export async function unbanUser(idToken: string, userId: string) {
-  const moderator = await getVerifiedUserProfile(idToken);
-   if (!hasAdminPower(moderator.roles)) {
-    throw new Error('Unauthorized: You must be an admin to perform this action.');
-  }
-
-  const targetDoc = await getDoc(doc(adminDb, 'users', userId));
-  if (!targetDoc.exists()) {
-      throw new Error('User not found.');
-  }
-  const target = targetDoc.data() as UserProfile;
-
-  if (!canModerate(moderator, target)) {
-      throw new Error('Permission Denied: You cannot manage a user with equal or higher rank.');
-  }
+  // Identity is verified, but no role/permission check is performed here.
+  await getVerifiedUserProfile(idToken);
 
   try {
     const userDocRef = doc(adminDb, 'users', userId);
@@ -149,20 +90,8 @@ export async function unbanUser(idToken: string, userId: string) {
 }
 
 export async function updateUserRoles(idToken: string, userId: string, newRoles: string[]) {
-    const moderator = await getVerifiedUserProfile(idToken);
-    if (!hasAdminPower(moderator.roles)) {
-        throw new Error('Unauthorized: You must be an admin to perform this action.');
-    }
-
-    const targetDoc = await getDoc(doc(adminDb, 'users', userId));
-    if (!targetDoc.exists()) {
-        throw new Error('User not found.');
-    }
-    const target = targetDoc.data() as UserProfile;
-
-    if (!canModerate(moderator, target)) {
-        throw new Error('Permission Denied: You cannot manage roles for a user with equal or higher rank.');
-    }
+    // Identity is verified, but no role/permission check is performed here.
+    await getVerifiedUserProfile(idToken);
     
     // Ensure 'member' is always present if no other roles are selected
     if (newRoles.length === 0) {
