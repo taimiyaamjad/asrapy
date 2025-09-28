@@ -707,240 +707,240 @@ export default function ChatPage() {
   );
   
   return (
-    <div className="flex h-screen bg-background-primary text-gray-200 font-sans">
-      {isMobile ? (
-        <Sheet open={isChannelsOpen} onOpenChange={setChannelsOpen}>
-            <SheetContent side="left" className="p-0 w-64 bg-background-secondary border-none">
+    <AlertDialog open={!!messageToDelete} onOpenChange={(isOpen) => !isOpen && setMessageToDelete(null)}>
+        <div className="flex h-screen bg-background-primary text-gray-200 font-sans">
+        {isMobile ? (
+            <Sheet open={isChannelsOpen} onOpenChange={setChannelsOpen}>
+                <SheetContent side="left" className="p-0 w-64 bg-background-secondary border-none">
+                    <ChannelsComponent />
+                </SheetContent>
+            </Sheet>
+        ) : (
+            <div className="w-64 flex-shrink-0">
                 <ChannelsComponent />
-            </SheetContent>
-        </Sheet>
-      ) : (
-         <div className="w-64 flex-shrink-0">
-            <ChannelsComponent />
-        </div>
-      )}
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-16 flex items-center justify-between border-b border-background-tertiary px-4 shadow-md shrink-0">
-            <div className='flex items-center gap-2'>
-              {isMobile && (
-                <Button variant="ghost" size="icon" onClick={() => setChannelsOpen(true)} className="text-white">
-                    <Menu className="h-6 w-6"/>
-                </Button>
-              )}
-              {activeChannel.type === 'channel' ? (
-                <span className="text-muted-foreground text-2xl font-light">#</span>
-              ) : (
-                <span className="text-muted-foreground text-2xl font-light">@</span>
-              )}
-              <h2 className="text-lg font-semibold text-white">
-                {activeChannel.name}
-              </h2>
             </div>
-            <div className="flex items-center gap-4 text-gray-400">
-                <div className="hidden md:flex items-center gap-4">
-                    <Search className="h-5 w-5" />
-                    <Inbox className="h-5 w-5" />
-                    <HelpCircle className="h-5 w-5" />
-                </div>
+        )}
+
+        {/* Main Content */}
+        <div className="flex-1 flex flex-col min-w-0">
+            <header className="h-16 flex items-center justify-between border-b border-background-tertiary px-4 shadow-md shrink-0">
+                <div className='flex items-center gap-2'>
                 {isMobile && (
-                    <Button variant="ghost" size="icon" onClick={() => setUsersOpen(true)} className="text-white">
-                        <Users className="h-6 w-6"/>
+                    <Button variant="ghost" size="icon" onClick={() => setChannelsOpen(true)} className="text-white">
+                        <Menu className="h-6 w-6"/>
                     </Button>
                 )}
-            </div>
-          </header>
+                {activeChannel.type === 'channel' ? (
+                    <span className="text-muted-foreground text-2xl font-light">#</span>
+                ) : (
+                    <span className="text-muted-foreground text-2xl font-light">@</span>
+                )}
+                <h2 className="text-lg font-semibold text-white">
+                    {activeChannel.name}
+                </h2>
+                </div>
+                <div className="flex items-center gap-4 text-gray-400">
+                    <div className="hidden md:flex items-center gap-4">
+                        <Search className="h-5 w-5" />
+                        <Inbox className="h-5 w-5" />
+                        <HelpCircle className="h-5 w-5" />
+                    </div>
+                    {isMobile && (
+                        <Button variant="ghost" size="icon" onClick={() => setUsersOpen(true)} className="text-white">
+                            <Users className="h-6 w-6"/>
+                        </Button>
+                    )}
+                </div>
+            </header>
 
-          <main className="flex-1 flex flex-row overflow-hidden">
-            {/* Chat Messages */}
-            <div className="flex-1 flex flex-col">
-              <ScrollArea className="flex-1" ref={scrollAreaRef}>
-                <div className="px-4 md:px-6 pt-6 pb-2 flex flex-col gap-0">
-                   {groupMessages.length === 0 ? (
-                      <div className="text-center text-muted-foreground mt-8">
-                          <p>This is the beginning of your conversation in {activeChannel.type === 'channel' ? '#' : '@'}{activeChannel.name}.</p>
-                      </div>
-                   ) : (
-                      groupMessages.map((group, groupIndex) => {
-                        if ('type' in group[0] && group[0].type === 'date_divider') {
+            <main className="flex-1 flex flex-row overflow-hidden">
+                {/* Chat Messages */}
+                <div className="flex-1 flex flex-col">
+                <ScrollArea className="flex-1" ref={scrollAreaRef}>
+                    <div className="px-4 md:px-6 pt-6 pb-2 flex flex-col gap-0">
+                    {groupMessages.length === 0 ? (
+                        <div className="text-center text-muted-foreground mt-8">
+                            <p>This is the beginning of your conversation in {activeChannel.type === 'channel' ? '#' : '@'}{activeChannel.name}.</p>
+                        </div>
+                    ) : (
+                        groupMessages.map((group, groupIndex) => {
+                            if ('type' in group[0] && group[0].type === 'date_divider') {
+                                return (
+                                    <div key={groupIndex} className="relative text-center my-6">
+                                        <Separator className="bg-gray-700" />
+                                        <span className="absolute left-1/2 -translate-x-1/2 -top-3 bg-background-primary px-3 text-xs font-semibold text-gray-400">
+                                            {group[0].date}
+                                        </span>
+                                    </div>
+                                )
+                            }
+
+                            const messages = group as Message[];
+                            const firstMessage = messages[0];
+                            const displayName = firstMessage.displayName || 'User';
+                            const photoURL = firstMessage.photoURL || '';
+                            const fallback = (displayName).charAt(0);
+
+                            const targetUser = allUsers.find(u => u.uid === firstMessage.userId);
+                            const moderatorRoles = userProfile?.roles || [];
+                            const targetRoles = targetUser?.roles || ['member'];
+
+                            const moderatorRank = getHighestRoleRank(moderatorRoles);
+                            const targetRank = getHighestRoleRank(targetRoles);
+                            
+                            const canModerate = userProfile && targetUser && userProfile.uid !== targetUser.uid && moderatorRank < targetRank;
+
                             return (
-                                <div key={groupIndex} className="relative text-center my-6">
-                                    <Separator className="bg-gray-700" />
-                                    <span className="absolute left-1/2 -translate-x-1/2 -top-3 bg-background-primary px-3 text-xs font-semibold text-gray-400">
-                                        {group[0].date}
-                                    </span>
-                                </div>
-                            )
-                        }
-
-                        const messages = group as Message[];
-                        const firstMessage = messages[0];
-                        const displayName = firstMessage.displayName || 'User';
-                        const photoURL = firstMessage.photoURL || '';
-                        const fallback = (displayName).charAt(0);
-
-                        const targetUser = allUsers.find(u => u.uid === firstMessage.userId);
-                        const moderatorRoles = userProfile?.roles || [];
-                        const targetRoles = targetUser?.roles || ['member'];
-
-                        const moderatorRank = getHighestRoleRank(moderatorRoles);
-                        const targetRank = getHighestRoleRank(targetRoles);
-                        
-                        const canModerate = userProfile && targetUser && userProfile.uid !== targetUser.uid && moderatorRank < targetRank;
-
-                        return (
-                            <div key={groupIndex} className="group/message-group flex items-start gap-4 py-1.5 hover:bg-gray-900/40 px-2 -mx-2 rounded-md relative">
-                                <div className="w-10 pt-1">
-                                    { (groupIndex === 0 || !(groupMessages[groupIndex-1][0] as Message).userId || ((groupMessages[groupIndex-1][0] as Message).userId !== firstMessage.userId)) &&
-                                        <div className="relative group">
-                                            <Popover>
-                                                <PopoverTrigger asChild>
-                                                    <Avatar className="h-10 w-10 cursor-pointer">
-                                                        <AvatarImage src={photoURL} alt={displayName} />
-                                                        <AvatarFallback>{fallback}</AvatarFallback>
-                                                    </Avatar>
-                                                </PopoverTrigger>
-                                                {targetUser && (
-                                                <PopoverContent side="top" className="w-80 p-0 border-none bg-transparent">
-                                                    <UserProfileCard userProfile={targetUser} currentUser={userProfile} />
-                                                </PopoverContent>
-                                                )}
-                                           </Popover>
-                                          
-                                          {canModerate && targetUser && (
-                                            <Popover>
-                                              <PopoverTrigger asChild>
-                                                  <button className="absolute inset-0 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                      <MoreVertical className="h-5 w-5 text-white" />
-                                                  </button>
-                                              </PopoverTrigger>
-                                              <ModerationPopoverContent 
-                                                targetUser={targetUser} 
-                                                onAction={handleModerationAction}
-                                              />
+                                <div key={groupIndex} className="group/message-group flex items-start gap-4 py-1.5 hover:bg-gray-900/40 px-2 -mx-2 rounded-md relative">
+                                    <div className="w-10 pt-1">
+                                        { (groupIndex === 0 || !(groupMessages[groupIndex-1][0] as Message).userId || ((groupMessages[groupIndex-1][0] as Message).userId !== firstMessage.userId)) &&
+                                            <div className="relative group">
+                                                <Popover>
+                                                    <PopoverTrigger asChild>
+                                                        <Avatar className="h-10 w-10 cursor-pointer">
+                                                            <AvatarImage src={photoURL} alt={displayName} />
+                                                            <AvatarFallback>{fallback}</AvatarFallback>
+                                                        </Avatar>
+                                                    </PopoverTrigger>
+                                                    {targetUser && (
+                                                    <PopoverContent side="top" className="w-80 p-0 border-none bg-transparent">
+                                                        <UserProfileCard userProfile={targetUser} currentUser={userProfile} />
+                                                    </PopoverContent>
+                                                    )}
                                             </Popover>
-                                          )}
-                                        </div>
-                                    }
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    {(groupIndex === 0 || !messages[0].createdAt || !groupMessages[groupIndex-1][0] || !('createdAt' in groupMessages[groupIndex-1][0]) || ((groupMessages[groupIndex-1][0] as Message).userId !== firstMessage.userId)) &&
-                                        <div className="flex items-center gap-2">
-                                            <p className="font-medium text-white">{displayName}</p>
-                                            {targetUser && hasAdminPower(targetUser.roles) && <BadgeCheck className="h-4 w-4 text-blue-500" />}
-                                            <p className="text-xs text-muted-foreground">
-                                                {firstMessage.createdAt ? format(firstMessage.createdAt.toDate(), 'p') : ''}
-                                            </p>
-                                        </div>
-                                    }
-                                    <div className="flex flex-col">
-                                        {messages.map(msg => {
-                                            const canDelete = user.uid === msg.userId || (targetUser && moderatorRank < getHighestRoleRank(targetUser.roles));
                                             
-                                            return (
-                                                <div key={msg.id} className="text-gray-300 relative group/message">
-                                                    {msg.text && <p>{msg.text}</p>}
-                                                    {msg.imageUrl && (
-                                                        <div className="mt-2 max-w-xs">
-                                                            <Image src={msg.imageUrl} alt="Uploaded image" width={300} height={200} className="rounded-md object-cover" />
-                                                        </div>
-                                                    )}
-                                                    {canDelete && (
-                                                        <div className="absolute -top-4 right-0 opacity-0 group-hover/message:opacity-100 group-hover/message-group:opacity-100 transition-opacity">
-                                                             <AlertDialogTrigger asChild>
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    className="h-7 w-7 text-red-500 hover:bg-red-500/10"
-                                                                    onClick={() => setMessageToDelete({
-                                                                        channelType: activeChannel.type,
-                                                                        channelId: activeChannel.id,
-                                                                        messageId: msg.id
-                                                                    })}
-                                                                >
-                                                                    <Trash2 className="h-4 w-4" />
-                                                                </Button>
-                                                            </AlertDialogTrigger>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )
-                                        })}
+                                            {canModerate && targetUser && (
+                                                <Popover>
+                                                <PopoverTrigger asChild>
+                                                    <button className="absolute inset-0 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                        <MoreVertical className="h-5 w-5 text-white" />
+                                                    </button>
+                                                </PopoverTrigger>
+                                                <ModerationPopoverContent 
+                                                    targetUser={targetUser} 
+                                                    onAction={handleModerationAction}
+                                                />
+                                                </Popover>
+                                            )}
+                                            </div>
+                                        }
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        {(groupIndex === 0 || !messages[0].createdAt || !groupMessages[groupIndex-1][0] || !('createdAt' in groupMessages[groupIndex-1][0]) || ((groupMessages[groupIndex-1][0] as Message).userId !== firstMessage.userId)) &&
+                                            <div className="flex items-center gap-2">
+                                                <p className="font-medium text-white">{displayName}</p>
+                                                {targetUser && hasAdminPower(targetUser.roles) && <BadgeCheck className="h-4 w-4 text-blue-500" />}
+                                                <p className="text-xs text-muted-foreground">
+                                                    {firstMessage.createdAt ? format(firstMessage.createdAt.toDate(), 'p') : ''}
+                                                </p>
+                                            </div>
+                                        }
+                                        <div className="flex flex-col">
+                                            {messages.map(msg => {
+                                                const canDelete = user.uid === msg.userId || (targetUser && moderatorRank < getHighestRoleRank(targetUser.roles));
+                                                
+                                                return (
+                                                    <div key={msg.id} className="text-gray-300 relative group/message">
+                                                        {msg.text && <p>{msg.text}</p>}
+                                                        {msg.imageUrl && (
+                                                            <div className="mt-2 max-w-xs">
+                                                                <Image src={msg.imageUrl} alt="Uploaded image" width={300} height={200} className="rounded-md object-cover" />
+                                                            </div>
+                                                        )}
+                                                        {canDelete && (
+                                                            <div className="absolute -top-4 right-0 opacity-0 group-hover/message:opacity-100 group-hover/message-group:opacity-100 transition-opacity">
+                                                                <AlertDialogTrigger asChild>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        className="h-7 w-7 text-red-500 hover:bg-red-500/10"
+                                                                        onClick={() => setMessageToDelete({
+                                                                            channelType: activeChannel.type,
+                                                                            channelId: activeChannel.id,
+                                                                            messageId: msg.id
+                                                                        })}
+                                                                    >
+                                                                        <Trash2 className="h-4 w-4" />
+                                                                    </Button>
+                                                                </AlertDialogTrigger>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )
+                                            })}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        )
-                      })
-                   )}
-                   <div ref={messagesEndRef} />
-                </div>
-              </ScrollArea>
-              <div className="px-4 md:px-6 pb-6">
-                <div className="w-full bg-background-modifier-accent rounded-lg">
-                   {imagePreview && (
-                    <div className="relative p-4 border-b border-background-tertiary">
-                      <div className="relative w-fit">
-                        <Image src={imagePreview} alt="Preview" width={80} height={80} className="rounded-md object-cover" />
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
-                          onClick={clearImagePreview}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
+                            )
+                        })
+                    )}
+                    <div ref={messagesEndRef} />
                     </div>
-                  )}
-                  {isUploading && <Progress value={uploadProgress} className="w-full h-1 rounded-t-lg" />}
-                  <form onSubmit={handleSendMessage} className="relative flex items-center">
-                      <Button 
-                        type="button" 
-                        size="icon" 
-                        variant="ghost" 
-                        className="m-2 text-gray-300 hover:bg-background-modifier-hover"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={!canPost || isUploading}
-                      >
-                        <Paperclip className="h-5 w-5" />
-                      </Button>
-                      <Input 
-                          placeholder={placeholderText}
-                          value={newMessage}
-                          onChange={(e) => setNewMessage(e.target.value)}
-                          className="bg-transparent border-none text-base focus-visible:ring-0 focus-visible:ring-offset-0 text-gray-200 placeholder-gray-500"
-                          disabled={!canPost || isUploading}
-                      />
-                       <input
-                          type="file"
-                          ref={fileInputRef}
-                          onChange={handleImageSelect}
-                          className="hidden"
-                          accept="image/*"
-                       />
-                      <Button type="submit" size="icon" variant="ghost" className="m-2 text-gray-300 hover:bg-background-modifier-hover" disabled={!canPost || isUploading || (!newMessage.trim() && !imageFile)}>
-                          <Send className="h-5 w-5" />
-                      </Button>
-                  </form>
+                </ScrollArea>
+                <div className="px-4 md:px-6 pb-6">
+                    <div className="w-full bg-background-modifier-accent rounded-lg">
+                    {imagePreview && (
+                        <div className="relative p-4 border-b border-background-tertiary">
+                        <div className="relative w-fit">
+                            <Image src={imagePreview} alt="Preview" width={80} height={80} className="rounded-md object-cover" />
+                            <Button
+                            variant="destructive"
+                            size="icon"
+                            className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                            onClick={clearImagePreview}
+                            >
+                            <X className="h-4 w-4" />
+                            </Button>
+                        </div>
+                        </div>
+                    )}
+                    {isUploading && <Progress value={uploadProgress} className="w-full h-1 rounded-t-lg" />}
+                    <form onSubmit={handleSendMessage} className="relative flex items-center">
+                        <Button 
+                            type="button" 
+                            size="icon" 
+                            variant="ghost" 
+                            className="m-2 text-gray-300 hover:bg-background-modifier-hover"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={!canPost || isUploading}
+                        >
+                            <Paperclip className="h-5 w-5" />
+                        </Button>
+                        <Input 
+                            placeholder={placeholderText}
+                            value={newMessage}
+                            onChange={(e) => setNewMessage(e.target.value)}
+                            className="bg-transparent border-none text-base focus-visible:ring-0 focus-visible:ring-offset-0 text-gray-200 placeholder-gray-500"
+                            disabled={!canPost || isUploading}
+                        />
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleImageSelect}
+                            className="hidden"
+                            accept="image/*"
+                        />
+                        <Button type="submit" size="icon" variant="ghost" className="m-2 text-gray-300 hover:bg-background-modifier-hover" disabled={!canPost || isUploading || (!newMessage.trim() && !imageFile)}>
+                            <Send className="h-5 w-5" />
+                        </Button>
+                    </form>
+                    </div>
                 </div>
-              </div>
-            </div>
+                </div>
 
-            <div className="hidden md:block w-64 flex-shrink-0">
-                <UsersComponent />
-            </div>
-          </main>
-      </div>
+                <div className="hidden md:block w-64 flex-shrink-0">
+                    <UsersComponent />
+                </div>
+            </main>
+        </div>
 
-       {isMobile && (
-        <Sheet open={isUsersOpen} onOpenChange={setUsersOpen}>
-            <SheetContent side="right" className="p-0 w-64 bg-background-secondary border-none">
-                <UsersComponent />
-            </SheetContent>
-        </Sheet>
-      )}
-        <AlertDialog open={!!messageToDelete} onOpenChange={(isOpen) => !isOpen && setMessageToDelete(null)}>
+        {isMobile && (
+            <Sheet open={isUsersOpen} onOpenChange={setUsersOpen}>
+                <SheetContent side="right" className="p-0 w-64 bg-background-secondary border-none">
+                    <UsersComponent />
+                </SheetContent>
+            </Sheet>
+        )}
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>Delete Message</AlertDialogTitle>
@@ -955,7 +955,9 @@ export default function ChatPage() {
                     </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
-        </AlertDialog>
-    </div>
+        </div>
+    </AlertDialog>
   );
 }
+
+    
