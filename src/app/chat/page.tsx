@@ -387,6 +387,11 @@ export default function ChatPage() {
   };
   
   const handleModerationAction = async (action: 'ban' | 'timeout' | 'unban' | 'updateRoles', targetUserId: string, payload?: any) => {
+    if (!user) {
+      toast({ variant: "destructive", title: "Authentication Error", description: "You must be logged in to perform this action." });
+      return;
+    }
+    
     try {
         let result;
         if (action === 'ban') {
@@ -398,7 +403,6 @@ export default function ChatPage() {
         } else if (action === 'updateRoles') {
             result = await updateUserRoles(targetUserId, payload as string[]);
         }
-
 
         if (result?.success) {
             toast({ title: "Success", description: result.message });

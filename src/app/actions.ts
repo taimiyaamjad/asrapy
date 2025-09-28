@@ -2,12 +2,10 @@
 "use server";
 
 import { adminDb } from '@/lib/firebase/server';
-import { doc, updateDoc, Timestamp, getDoc } from 'firebase/firestore';
+import { doc, updateDoc, Timestamp } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 
 export async function banUser(userId: string) {
-  // Identity and role checks are removed as per user request.
-  // Trusting client-side logic to only show this option to authorized users.
   try {
     const userDocRef = doc(adminDb, 'users', userId);
     await updateDoc(userDocRef, {
@@ -21,7 +19,6 @@ export async function banUser(userId: string) {
 }
 
 export async function timeoutUser(userId: string, durationMinutes: number) {
-  // Identity and role checks are removed as per user request.
   try {
     const timeoutUntil = Timestamp.fromMillis(Date.now() + durationMinutes * 60 * 1000);
     const userDocRef = doc(adminDb, 'users', userId);
@@ -36,7 +33,6 @@ export async function timeoutUser(userId: string, durationMinutes: number) {
 }
 
 export async function unbanUser(userId: string) {
-  // Identity and role checks are removed as per user request.
   try {
     const userDocRef = doc(adminDb, 'users', userId);
     await updateDoc(userDocRef, {
@@ -51,8 +47,6 @@ export async function unbanUser(userId: string) {
 }
 
 export async function updateUserRoles(userId: string, newRoles: string[]) {
-    // Identity and role checks are removed as per user request.
-    
     // Ensure 'member' is always present if no other roles are selected
     if (newRoles.length === 0) {
         newRoles.push('member');
