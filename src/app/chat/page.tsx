@@ -238,6 +238,17 @@ export default function ChatPage() {
                     router.push('/login');
                     return;
                 }
+                if (userData.timeoutUntil && userData.timeoutUntil.toDate() > new Date()) {
+                    const timeLeft = formatDistanceToNow(userData.timeoutUntil.toDate(), { addSuffix: true });
+                    toast({
+                        variant: 'destructive',
+                        title: 'Account in Timeout',
+                        description: `You can use the app again ${timeLeft}.`,
+                    });
+                    auth.signOut();
+                    router.push('/login');
+                    return;
+                }
                 setUserProfile(userData);
             }
         });
