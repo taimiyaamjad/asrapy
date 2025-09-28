@@ -78,7 +78,7 @@ interface Message {
     photoURL: string | null;
 }
 
-interface UserProfile {
+export interface UserProfile {
     uid: string;
     displayName: string;
     email: string;
@@ -538,6 +538,11 @@ export default function ChatPage() {
       return allUsers.filter(u => userProfile.friends!.includes(u.uid));
   }, [userProfile, allUsers]);
 
+  const pendingRequestsCount = useMemo(() => {
+    if (!userProfile?.friendRequests) return 0;
+    return Object.values(userProfile.friendRequests).filter(status => status === 'received').length;
+  }, [userProfile]);
+
   if (loading || !user || !userProfile) {
     return (
       <div className="flex items-center justify-center h-screen w-full bg-background-tertiary text-white">
@@ -560,6 +565,21 @@ export default function ChatPage() {
         </header>
         <ScrollArea className="flex-1 p-2">
              <div className="px-2 space-y-1">
+                <Button 
+                    variant="channel"
+                    className="w-full justify-start gap-2 relative"
+                    onClick={() => router.push('/chat/requests')}
+                >
+                    <UserPlus className="h-5 w-5 text-muted-foreground" />
+                    Friend Requests
+                    {pendingRequestsCount > 0 && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 bg-red-600 text-white text-xs font-bold rounded-full h-5 min-w-[20px] flex items-center justify-center px-1.5">
+                            {pendingRequestsCount}
+                        </div>
+                    )}
+                </Button>
+            </div>
+             <div className="px-2 space-y-1 mt-4">
                 <p className='text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 mt-4'>Announcements</p>
                 {announcementChannels.map(channel => (
                     <Button 
