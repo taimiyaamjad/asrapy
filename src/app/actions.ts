@@ -2,13 +2,13 @@
 "use server";
 
 import { adminDb } from '@/lib/firebase/server';
-import { doc, updateDoc, Timestamp, arrayUnion, arrayRemove } from 'firebase-admin/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
 import { revalidatePath } from 'next/cache';
 
 export async function banUser(userId: string) {
   try {
-    const userDocRef = doc(adminDb, 'users', userId);
-    await updateDoc(userDocRef, {
+    const userDocRef = adminDb.collection('users').doc(userId);
+    await userDocRef.update({
       isBanned: true,
     });
     revalidatePath('/chat');
@@ -20,9 +20,9 @@ export async function banUser(userId: string) {
 
 export async function timeoutUser(userId: string, durationMinutes: number) {
   try {
-    const timeoutUntil = Timestamp.fromMillis(Date.now() + durationMinutes * 60 * 1000);
-    const userDocRef = doc(adminDb, 'users', userId);
-    await updateDoc(userDocRef, {
+    const timeoutUntil = new Date(Date.now() + durationMinutes * 60 * 1000);
+    const userDocRef = adminDb.collection('users').doc(userId);
+    await userDocRef.update({
       timeoutUntil,
     });
     revalidatePath('/chat');
@@ -34,8 +34,8 @@ export async function timeoutUser(userId: string, durationMinutes: number) {
 
 export async function unbanUser(userId: string) {
   try {
-    const userDocRef = doc(adminDb, 'users', userId);
-    await updateDoc(userDocRef, {
+    const userDocRef = adminDb.collection('users').doc(userId);
+    await userDocRef.update({
       isBanned: false,
       timeoutUntil: null,
     });
@@ -54,8 +54,8 @@ export async function updateUserRoles(userId: string, newRoles: string[]) {
     }
 
     try {
-        const userDocRef = doc(adminDb, 'users', userId);
-        await updateDoc(userDocRef, {
+        const userDocRef = adminDb.collection('users').doc(userId);
+        await userDocRef.update({
             roles: newRoles
         });
         revalidatePath('/chat');
@@ -67,13 +67,13 @@ export async function updateUserRoles(userId: string, newRoles: string[]) {
 
 export async function sendFriendRequest(requesterId: string, recipientId: string) {
     try {
-        const requesterDocRef = doc(adminDb, 'users', requesterId);
-        const recipientDocRef = doc(adminDb, 'users', recipientId);
+        const requesterDocRef = adminDb.collection('users').doc(requesterId);
+        const recipientDocRef = adminDb.collection('users').doc(recipientId);
 
-        await updateDoc(requesterDocRef, {
+        await requesterDocRef.update({
             [`friendRequests.${recipientId}`]: 'sent'
         });
-        await updateDoc(recipientDocRef, {
+        await recipientDocRef.update({
             [`friendRequests.${requesterId}`]: 'received'
         });
 
@@ -86,16 +86,16 @@ export async function sendFriendRequest(requesterId: string, recipientId: string
 
 export async function acceptFriendRequest(userId: string, requesterId: string) {
     try {
-        const userDocRef = doc(adminDb, 'users', userId);
-        const requesterDocRef = doc(adminDb, 'users', requesterId);
+        const userDocRef = adminDb.collection('users').doc(userId);
+        const requesterDocRef = adminDb.collection('users').doc(requesterId);
 
         // Use Firestore transaction or batched write for atomicity if needed, but for now this is fine.
-        await updateDoc(userDocRef, {
-            friends: arrayUnion(requesterId),
+        await userDocRef.update({
+            friends: FieldValue.arrayUnion(requesterId),
             [`friendRequests.${requesterId}`]: FieldValue.delete()
         });
-        await updateDoc(requesterDocRef, {
-            friends: arrayUnion(userId),
+        await requesterDocRef.update({
+            friends: FieldValue.arrayUnion(userId),
             [`friendRequests.${userId}`]: FieldValue.delete()
         });
 
@@ -108,14 +108,14 @@ export async function acceptFriendRequest(userId: string, requesterId: string) {
 
 export async function removeFriend(userId: string, friendId: string) {
     try {
-        const userDocRef = doc(adminDb, 'users', userId);
-        const friendDocRef = doc(adminDb, 'users', friendId);
+        const userDocRef = adminDb.collection('users').doc(userId);
+        const friendDocRef = adminDb.collection('users').doc(friendId);
 
-        await updateDoc(userDocRef, {
-            friends: arrayRemove(friendId)
+        await userDocRef.update({
+            friends: FieldValue.arrayRemove(friendId)
         });
-        await updateDoc(friendDocRef, {
-            friends: arrayRemove(userId)
+        await friendDocRef.update({
+            friends: FieldValue.arrayRemove(userId)
         });
 
         revalidatePath('/chat');
