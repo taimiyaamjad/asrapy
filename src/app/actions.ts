@@ -29,8 +29,8 @@ const getHighestRoleRank = (roles: string[]): number => {
 
 const hasAdminPower = (roles: string[]): boolean => {
     if (!roles) return false;
-    const adminRoles = ALL_ROLES.slice(0, -1); // All roles except 'member'
-    return roles.some(role => adminRoles.includes(role));
+    // An admin is anyone with a role other than just 'member'.
+    return roles.some(role => role !== 'member');
 };
 
 
