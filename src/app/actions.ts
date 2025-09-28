@@ -3,7 +3,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/firebase/client';
-import { doc, updateDoc, FieldValue, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, FieldValue, arrayUnion, arrayRemove, Timestamp } from 'firebase/firestore';
 
 
 export async function banUser(userId: string) {
@@ -24,21 +24,12 @@ export async function timeoutUser(userId: string, durationMinutes: number) {
     const timeoutUntil = new Date(Date.now() + durationMinutes * 60 * 1000);
     const userDocRef = doc(db, 'users', userId);
     await updateDoc(userDocRef, {
-      timeoutUntil: serverTimestamp(), // This will be incorrect, needs to be the date object.
-    });
-
-    // Correct implementation should use the date object directly, but Firestore client SDK needs a Timestamp.
-    // The serverTimestamp is a placeholder. For a real implementation, one would convert timeoutUntil to a Firestore Timestamp.
-    // For now, let's just make it work with a server-generated time.
-    await updateDoc(doc(db, 'users', userId), {
       timeoutUntil: Timestamp.fromDate(timeoutUntil)
     });
-
 
     revalidatePath('/chat');
     return { success: true, message: `User has been timed out for ${durationMinutes} minutes.` };
   } catch (error: any) {
-    // A more robust implementation would check for specific Firestore errors.
     if (error.code === 'permission-denied') {
        return { success: false, message: "You don't have permission to perform this action." };
     }
@@ -105,11 +96,11 @@ export async function acceptFriendRequest(userId: string, requesterId: string) {
         const requesterDocRef = doc(db, "users", requesterId);
 
         await updateDoc(userDocRef, {
-            friends: FieldValue.arrayUnion(requesterId),
+            friends: arrayUnion(requesterId),
             [`friendRequests.${requesterId}`]: FieldValue.delete()
         });
         await updateDoc(requesterDocRef, {
-            friends: FieldValue.arrayUnion(userId),
+            friends: arrayUnion(userId),
             [`friendRequests.${userId}`]: FieldValue.delete()
         });
 
@@ -126,10 +117,10 @@ export async function removeFriend(userId: string, friendId: string) {
         const friendDocRef = doc(db, "users", friendId);
 
         await updateDoc(userDocRef, {
-            friends: FieldValue.arrayRemove(friendId)
+            friends: arrayRemove(friendId)
         });
         await updateDoc(friendDocRef, {
-            friends: FieldValue.arrayRemove(userId)
+            friends: arrayRemove(userId)
         });
 
         revalidatePath('/chat');
