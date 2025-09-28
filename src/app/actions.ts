@@ -3,7 +3,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/firebase/client';
-import { doc, updateDoc, FieldValue, arrayUnion, arrayRemove, Timestamp, deleteDoc } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, arrayRemove, Timestamp, deleteDoc, FieldValue } from 'firebase/firestore';
 
 
 export async function banUser(userId: string) {
@@ -105,6 +105,7 @@ export async function acceptFriendRequest(userId: string, requesterId: string) {
         });
 
         revalidatePath('/chat');
+        revalidatePath('/chat/requests');
         return { success: true, message: 'Friend request accepted.' };
     } catch (error: any) {
         return { success: false, message: error.message };
@@ -116,15 +117,20 @@ export async function removeFriend(userId: string, friendId: string) {
         const userDocRef = doc(db, "users", userId);
         const friendDocRef = doc(db, "users", friendId);
 
+        // This action can be used to remove a friend OR decline/cancel a request
         await updateDoc(userDocRef, {
-            friends: arrayRemove(friendId)
+            friends: arrayRemove(friendId),
+            [`friendRequests.${friendId}`]: FieldValue.delete()
         });
         await updateDoc(friendDocRef, {
-            friends: arrayRemove(userId)
+            friends: arrayRemove(userId),
+            [`friendRequests.${userId}`]: FieldValue.delete()
         });
 
+
         revalidatePath('/chat');
-        return { success: true, message: 'Friend removed.' };
+        revalidatePath('/chat/requests');
+        return { success: true, message: 'Friend removed or request declined.' };
     } catch (error: any) {
         return { success: false, message: error.message };
     }

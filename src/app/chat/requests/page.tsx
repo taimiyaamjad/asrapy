@@ -73,7 +73,6 @@ export default function FriendRequestsPage() {
 
     const handleDecline = async (requesterId: string) => {
          if (!user) return;
-        // Declining is the same as removing a friend from the request perspective
         const result = await removeFriend(user.uid, requesterId);
         if (result.success) {
             toast({ title: "Request Declined" });
