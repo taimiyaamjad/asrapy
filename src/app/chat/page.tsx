@@ -87,7 +87,7 @@ interface Message {
     id: string;
     text: string | null;
     imageUrl: string | null;
-    createdAt: Timestamp;
+    createdAt: Timestamp | null;
     editedAt?: Timestamp;
     userId: string;
     displayName: string | null;
@@ -96,6 +96,7 @@ interface Message {
         messageId: string;
         text: string | null;
         displayName: string | null;
+        photoURL?: string | null;
     };
 }
 
@@ -432,6 +433,7 @@ export default function ChatPage() {
             messageId: replyToMessage.id,
             text: replyToMessage.text,
             displayName: replyToMessage.displayName,
+            photoURL: replyToMessage.photoURL,
         };
     }
 
@@ -548,7 +550,8 @@ export default function ChatPage() {
     let messageGroup: Message[] = [];
 
     messages.forEach((msg, index) => {
-        const messageDate = msg.createdAt ? msg.createdAt.toDate() : new Date();
+        if (!msg.createdAt) return;
+        const messageDate = msg.createdAt.toDate();
         const formattedDate = format(messageDate, 'MMMM d, yyyy');
 
         if (formattedDate !== lastDate) {
@@ -561,10 +564,12 @@ export default function ChatPage() {
             lastUserId = null; // Reset user grouping on new day
         }
 
-        const timeSinceLastMessage = index > 0 && messages[index-1].createdAt
-            ? (messageDate.getTime() - messages[index-1].createdAt.toDate().getTime()) / (1000 * 60)
+        const prevMessage = messages[index-1];
+        const timeSinceLastMessage = prevMessage?.createdAt
+            ? (messageDate.getTime() - prevMessage.createdAt.toDate().getTime()) / (1000 * 60)
             : Infinity;
 
+        // Force a new group if the message is a reply
         if (msg.userId === lastUserId && timeSinceLastMessage < 5 && !msg.replyTo) {
             messageGroup.push(msg);
         } else {
@@ -829,7 +834,7 @@ export default function ChatPage() {
                             const photoURL = firstMessage.photoURL || '';
                             const fallback = (displayName).charAt(0);
                             
-                            const isNewAuthor = groupIndex === 0 || !(groupMessages[groupIndex-1][0] as Message).userId || ((groupMessages[groupIndex-1][0] as Message).userId !== firstMessage.userId) || firstMessage.replyTo;
+                            const isNewAuthor = groupIndex === 0 || 'replyTo' in firstMessage || !(groupMessages[groupIndex - 1][0] as Message).userId || ((groupMessages[groupIndex - 1][0] as Message).userId !== firstMessage.userId);
 
                             const targetUser = allUsers.find(u => u.uid === firstMessage.userId);
                             const moderatorRoles = userProfile?.roles || [];
@@ -842,7 +847,7 @@ export default function ChatPage() {
 
                             return (
                                 <div key={groupIndex} className={`group/message-group flex items-start gap-4 py-0.5 hover:bg-gray-900/40 px-2 -mx-2 rounded-md relative ${isNewAuthor ? 'mt-3' : ''}`}>
-                                    <div className="w-10 pt-1">
+                                    <div className="w-10 pt-1 shrink-0">
                                         { isNewAuthor &&
                                             <div className="relative group">
                                                 <Popover>
@@ -908,11 +913,21 @@ export default function ChatPage() {
 
                                                 return (
                                                     <div key={msg.id} className="text-gray-300 relative group/message">
-                                                        {msg.replyTo && (
-                                                            <div className="flex items-center text-xs text-muted-foreground mb-1 p-1 rounded-md bg-background-secondary/50 w-fit">
-                                                                <MessageSquareReply className="h-3 w-3 mr-2" />
-                                                                <span className="font-semibold text-white mr-1">{msg.replyTo.displayName}</span>
-                                                                <span className="truncate max-w-[200px]">{msg.replyTo.text}</span>
+                                                        {msg.replyTo && isNewAuthor && (
+                                                            <div className="relative pl-10 mb-1">
+                                                                <div className="absolute left-[-2.3rem] top-[-1.2rem] w-8 h-8">
+                                                                    <svg width="100%" height="100%" viewBox="0 0 32 32" className="text-gray-600">
+                                                                        <path fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" d="M12 4 v16 c0 4 4 4 4 4 h4"></path>
+                                                                    </svg>
+                                                                </div>
+                                                                <div className="flex items-center text-xs text-muted-foreground">
+                                                                    <Avatar className="h-4 w-4 mr-1.5">
+                                                                        <AvatarImage src={msg.replyTo.photoURL || undefined} />
+                                                                        <AvatarFallback>{(msg.replyTo.displayName || 'U').charAt(0)}</AvatarFallback>
+                                                                    </Avatar>
+                                                                    <span className="font-semibold text-white mr-1.5">{msg.replyTo.displayName}</span>
+                                                                    <span className="truncate max-w-[200px]">{msg.replyTo.text}</span>
+                                                                </div>
                                                             </div>
                                                         )}
                                                         {msg.text && <p>{msg.text} {msg.editedAt && <span className='text-xs text-muted-foreground'>(edited)</span>}</p>}
@@ -1063,4 +1078,5 @@ export default function ChatPage() {
     
 
     
+
 
