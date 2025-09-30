@@ -6,10 +6,13 @@ import { db } from '@/lib/firebase/client';
 import { doc, updateDoc, arrayUnion, arrayRemove, Timestamp, deleteDoc, FieldValue, deleteField } from 'firebase/firestore';
 import { put } from '@vercel/blob';
 
+const BLOB_READ_WRITE_TOKEN = "vercel_blob_rw_8HSrMdmAaDmCBCli_lqMTRNfOMGgwE4UcnsEaceeDiYfLwf";
+
 export async function uploadAvatar(formData: FormData) {
   const file = formData.get('file') as File;
   const blob = await put(`avatars/${file.name}`, file, {
     access: 'public',
+    token: BLOB_READ_WRITE_TOKEN,
   });
   return blob;
 }
@@ -18,6 +21,7 @@ export async function uploadChatImage(formData: FormData) {
   const file = formData.get('file') as File;
   const blob = await put(`chat_images/${file.name}`, file, {
     access: 'public',
+    token: BLOB_READ_WRITE_TOKEN,
   });
   return blob;
 }
