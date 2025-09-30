@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useAuth } from '@/context/auth-context';
@@ -882,8 +881,8 @@ export default function ChatPage() {
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         {firstMessage.replyTo && isNewAuthor && (
-                                            <div className="relative pl-10 mb-1">
-                                                <div className="absolute left-[-2.3rem] top-[-0.7rem] w-8 h-8">
+                                            <div className="relative pl-3.5 mb-1">
+                                                <div className="absolute left-[-2.2rem] top-[-0.7rem] w-8 h-8">
                                                     <svg width="100%" height="100%" viewBox="0 0 32 32" className="text-gray-600">
                                                         <path fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" d="M12 4 v16 c0 4 4 4 4 4 h4"></path>
                                                     </svg>
@@ -1074,10 +1073,3 @@ export default function ChatPage() {
     </AlertDialog>
   );
 }
-
-    
-
-    
-
-
-
