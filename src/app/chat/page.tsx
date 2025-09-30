@@ -37,7 +37,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { FormEvent, useEffect, useRef, useState, useMemo } from 'react';
-import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, Timestamp, doc, getDoc, getDocs, updateDoc, FieldValue } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, Timestamp, doc, getDoc, getDocs, updateDoc, FieldValue, deleteField } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase/client';
 import { format, formatDistanceToNow, isToday, isYesterday, differenceInMinutes } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -833,7 +833,8 @@ export default function ChatPage() {
                             const photoURL = firstMessage.photoURL || '';
                             const fallback = (displayName).charAt(0);
                             
-                            const isNewAuthor = groupIndex === 0 || 'replyTo' in firstMessage || !(groupMessages[groupIndex - 1][0] as Message).userId || ((groupMessages[groupIndex - 1][0] as Message).userId !== firstMessage.userId);
+                            const isNewAuthor = groupIndex === 0 || !(groupMessages[groupIndex - 1][0] as Message).userId || ((groupMessages[groupIndex - 1][0] as Message).userId !== firstMessage.userId) || firstMessage.replyTo;
+
 
                             const targetUser = allUsers.find(u => u.uid === firstMessage.userId);
                             const moderatorRoles = userProfile?.roles || [];
@@ -880,13 +881,8 @@ export default function ChatPage() {
                                         }
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        {firstMessage.replyTo && isNewAuthor && (
-                                            <div className="relative pl-3.5 mb-1">
-                                                <div className="absolute left-[-2.2rem] top-[-0.7rem] w-8 h-8">
-                                                    <svg width="100%" height="100%" viewBox="0 0 32 32" className="text-gray-600">
-                                                        <path fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" d="M12 4 v16 c0 4 4 4 4 4 h4"></path>
-                                                    </svg>
-                                                </div>
+                                        {firstMessage.replyTo && (
+                                            <div className="relative pl-0 mb-1">
                                                 <div className="flex items-center text-xs text-muted-foreground">
                                                     <Avatar className="h-4 w-4 mr-1.5">
                                                         <AvatarImage src={firstMessage.replyTo.photoURL || undefined} />
