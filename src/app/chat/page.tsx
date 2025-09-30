@@ -881,6 +881,23 @@ export default function ChatPage() {
                                         }
                                     </div>
                                     <div className="flex-1 min-w-0">
+                                        {firstMessage.replyTo && isNewAuthor && (
+                                            <div className="relative pl-10 mb-1">
+                                                <div className="absolute left-[-2.3rem] top-[-0.7rem] w-8 h-8">
+                                                    <svg width="100%" height="100%" viewBox="0 0 32 32" className="text-gray-600">
+                                                        <path fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" d="M12 4 v16 c0 4 4 4 4 4 h4"></path>
+                                                    </svg>
+                                                </div>
+                                                <div className="flex items-center text-xs text-muted-foreground">
+                                                    <Avatar className="h-4 w-4 mr-1.5">
+                                                        <AvatarImage src={firstMessage.replyTo.photoURL || undefined} />
+                                                        <AvatarFallback>{(firstMessage.replyTo.displayName || 'U').charAt(0)}</AvatarFallback>
+                                                    </Avatar>
+                                                    <span className="font-semibold text-white mr-1.5">{firstMessage.replyTo.displayName}</span>
+                                                    <span className="truncate max-w-[200px]">{firstMessage.replyTo.text}</span>
+                                                </div>
+                                            </div>
+                                        )}
                                         {isNewAuthor &&
                                             <div className="flex items-center gap-2">
                                                 <p className="font-medium text-white">{displayName}</p>
@@ -913,23 +930,6 @@ export default function ChatPage() {
 
                                                 return (
                                                     <div key={msg.id} className="text-gray-300 relative group/message">
-                                                        {msg.replyTo && isNewAuthor && (
-                                                            <div className="relative pl-10 mb-1">
-                                                                <div className="absolute left-[-2.3rem] top-[-1.2rem] w-8 h-8">
-                                                                    <svg width="100%" height="100%" viewBox="0 0 32 32" className="text-gray-600">
-                                                                        <path fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" d="M12 4 v16 c0 4 4 4 4 4 h4"></path>
-                                                                    </svg>
-                                                                </div>
-                                                                <div className="flex items-center text-xs text-muted-foreground">
-                                                                    <Avatar className="h-4 w-4 mr-1.5">
-                                                                        <AvatarImage src={msg.replyTo.photoURL || undefined} />
-                                                                        <AvatarFallback>{(msg.replyTo.displayName || 'U').charAt(0)}</AvatarFallback>
-                                                                    </Avatar>
-                                                                    <span className="font-semibold text-white mr-1.5">{msg.replyTo.displayName}</span>
-                                                                    <span className="truncate max-w-[200px]">{msg.replyTo.text}</span>
-                                                                </div>
-                                                            </div>
-                                                        )}
                                                         {msg.text && <p>{msg.text} {msg.editedAt && <span className='text-xs text-muted-foreground'>(edited)</span>}</p>}
                                                         {msg.imageUrl && (
                                                             <div className="mt-2 max-w-xs">
@@ -1078,5 +1078,6 @@ export default function ChatPage() {
     
 
     
+
 
 
