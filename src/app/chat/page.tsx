@@ -888,7 +888,7 @@ export default function ChatPage() {
                                         <div className="flex flex-col">
                                             {messages.map(msg => {
                                                 const canDelete = user.uid === msg.userId || (targetUser && moderatorRank < getHighestRoleRank(targetUser.roles));
-                                                const isEditable = user.uid === msg.userId && differenceInMinutes(new Date(), msg.createdAt.toDate()) < 15;
+                                                const isEditable = user.uid === msg.userId && msg.createdAt && differenceInMinutes(new Date(), msg.createdAt.toDate()) < 15;
                                                 const isEditing = editingMessage?.id === msg.id;
 
                                                 if (isEditing) {
@@ -1063,3 +1063,4 @@ export default function ChatPage() {
     
 
     
+
