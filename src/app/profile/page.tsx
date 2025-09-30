@@ -9,8 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, useMemo } from 'react';
-import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
-import { db, storage, auth } from '@/lib/firebase/client';
+import { db, auth } from '@/lib/firebase/client';
 import { doc, updateDoc, getDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { updateProfile } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
@@ -18,6 +17,7 @@ import { Camera, Save } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { addDays, formatDistanceToNow, isBefore } from 'date-fns';
 import { Textarea } from '@/components/ui/textarea';
+import { uploadAvatar } from '../actions';
 
 const MAX_NAME_CHANGES = 2;
 const NAME_CHANGE_WINDOW_DAYS = 14;
@@ -80,11 +80,11 @@ export default function ProfilePage() {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0] && user) {
       const file = e.target.files[0];
-      if (file.size > 2 * 1024 * 1024) { // 2MB limit
+      if (file.size > 4.5 * 1024 * 1024) { // 4.5MB limit
         toast({
           variant: 'destructive',
           title: 'File too large',
-          description: 'Please upload an image smaller than 2MB.',
+          description: 'Please upload an image smaller than 4.5MB.',
         });
         return;
       }
@@ -92,12 +92,12 @@ export default function ProfilePage() {
       setIsUploading(true);
       setUploadProgress(30);
 
-      const storageRef = ref(storage, `avatars/${user.uid}/${file.name}`);
+      const formData = new FormData();
+      formData.append('file', file);
       
       try {
-        const snapshot = await uploadBytes(storageRef, file);
         setUploadProgress(70);
-        const photoURL = await getDownloadURL(snapshot.ref);
+        const { url: photoURL } = await uploadAvatar(formData);
 
         // Update Firebase Auth profile
         if(auth.currentUser) {
@@ -302,5 +302,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-
-    

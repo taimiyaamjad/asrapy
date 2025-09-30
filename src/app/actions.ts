@@ -4,6 +4,23 @@
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/firebase/client';
 import { doc, updateDoc, arrayUnion, arrayRemove, Timestamp, deleteDoc, FieldValue, deleteField } from 'firebase/firestore';
+import { put } from '@vercel/blob';
+
+export async function uploadAvatar(formData: FormData) {
+  const file = formData.get('file') as File;
+  const blob = await put(`avatars/${file.name}`, file, {
+    access: 'public',
+  });
+  return blob;
+}
+
+export async function uploadChatImage(formData: FormData) {
+  const file = formData.get('file') as File;
+  const blob = await put(`chat_images/${file.name}`, file, {
+    access: 'public',
+  });
+  return blob;
+}
 
 
 export async function banUser(userId: string) {
@@ -153,3 +170,22 @@ export async function deleteMessage(channelType: 'channel' | 'dm', channelId: st
     }
 }
 
+export async function editMessage(channelType: 'channel' | 'dm', channelId: string, messageId: string, newText: string) {
+    try {
+        const collectionPath = channelType === 'channel'
+            ? `channels/${channelId}/messages`
+            : `dms/${channelId}/messages`;
+        
+        const messageDocRef = doc(db, collectionPath, messageId);
+        await updateDoc(messageDocRef, {
+            text: newText,
+            editedAt: serverTimestamp()
+        });
+        
+        revalidatePath('/chat');
+        return { success: true, message: 'Message edited.' };
+
+    } catch (error: any) {
+        return { success: false, message: error.message };
+    }
+}

@@ -33,18 +33,19 @@ import {
   UserX,
   Trash2,
   MessageSquareReply,
+  Pencil,
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { FormEvent, useEffect, useRef, useState, useMemo } from 'react';
 import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, Timestamp, doc, getDoc, getDocs, updateDoc, FieldValue } from 'firebase/firestore';
-import { db, storage, auth } from '@/lib/firebase/client';
-import { format, formatDistanceToNow, isToday, isYesterday } from 'date-fns';
+import { db, auth } from '@/lib/firebase/client';
+import { format, formatDistanceToNow, isToday, isYesterday, differenceInMinutes } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
+import { uploadChatImage } from '../actions';
 import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
-import { banUser, timeoutUser, unbanUser, updateUserRoles, sendFriendRequest, acceptFriendRequest, removeFriend, deleteMessage } from '../actions';
+import { banUser, timeoutUser, unbanUser, updateUserRoles, sendFriendRequest, acceptFriendRequest, removeFriend, deleteMessage, editMessage } from '../actions';
 import {
   Popover,
   PopoverContent,
@@ -87,6 +88,7 @@ interface Message {
     text: string | null;
     imageUrl: string | null;
     createdAt: Timestamp;
+    editedAt?: Timestamp;
     userId: string;
     displayName: string | null;
     photoURL: string | null;
@@ -281,6 +283,8 @@ export default function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [messageToDelete, setMessageToDelete] = useState<{channelType: 'channel' | 'dm', channelId: string, messageId: string} | null>(null);
   const [replyToMessage, setReplyToMessage] = useState<Message | null>(null);
+  const [editingMessage, setEditingMessage] = useState<Message | null>(null);
+  const [editingText, setEditingText] = useState("");
 
     useEffect(() => {
         if (loading) return;
@@ -392,20 +396,22 @@ export default function ChatPage() {
     setUploadProgress(0);
 
     let imageUrl: string | null = null;
-    const uploadPath = activeChannel.type === 'channel' ? `chat_images/${activeChannel.id}` : `dm_images/${activeChannel.id}`;
-
+    
     if (imageFile) {
-        const storageRef = ref(storage, `${uploadPath}/${Date.now()}_${imageFile.name}`);
-        try {
-            const snapshot = await uploadBytes(storageRef, imageFile);
-            imageUrl = await getDownloadURL(snapshot.ref);
-            setUploadProgress(100);
-        } catch (error) {
-            console.error("Image upload error:", error);
-            toast({ variant: "destructive", title: "Upload Failed", description: "Could not upload the image." });
-            setIsUploading(false);
-            return;
-        }
+      const formData = new FormData();
+      formData.append('file', imageFile);
+
+      try {
+        setUploadProgress(50);
+        const { url } = await uploadChatImage(formData);
+        imageUrl = url;
+        setUploadProgress(100);
+      } catch (error) {
+        console.error("Image upload error:", error);
+        toast({ variant: "destructive", title: "Upload Failed", description: "Could not upload the image." });
+        setIsUploading(false);
+        return;
+      }
     }
     
     const collectionPath = activeChannel.type === 'channel' 
@@ -506,6 +512,31 @@ export default function ChatPage() {
             toast({ variant: 'destructive', title: 'Error', description: result.message });
         }
         setMessageToDelete(null);
+    };
+
+    const handleEditMessage = async (e: FormEvent) => {
+        e.preventDefault();
+        if (!editingMessage || !editingText.trim()) return;
+
+        const result = await editMessage(activeChannel.type, activeChannel.id, editingMessage.id, editingText);
+
+        if (result.success) {
+            toast({ title: 'Success', description: 'Message updated.' });
+        } else {
+            toast({ variant: 'destructive', title: 'Error', description: result.message });
+        }
+        setEditingMessage(null);
+        setEditingText("");
+    };
+
+    const startEditing = (msg: Message) => {
+        setEditingMessage(msg);
+        setEditingText(msg.text || "");
+    };
+
+    const cancelEditing = () => {
+        setEditingMessage(null);
+        setEditingText("");
     };
 
   const groupMessages = useMemo(() => {
@@ -857,7 +888,24 @@ export default function ChatPage() {
                                         <div className="flex flex-col">
                                             {messages.map(msg => {
                                                 const canDelete = user.uid === msg.userId || (targetUser && moderatorRank < getHighestRoleRank(targetUser.roles));
-                                                
+                                                const isEditable = user.uid === msg.userId && differenceInMinutes(new Date(), msg.createdAt.toDate()) < 15;
+                                                const isEditing = editingMessage?.id === msg.id;
+
+                                                if (isEditing) {
+                                                    return (
+                                                        <form key={msg.id} onSubmit={handleEditMessage} className="space-y-2 mt-1">
+                                                            <Input 
+                                                                value={editingText}
+                                                                onChange={(e) => setEditingText(e.target.value)}
+                                                                className="bg-background-modifier-accent border-none text-base focus-visible:ring-0 focus-visible:ring-offset-0 text-gray-200 placeholder-gray-500"
+                                                            />
+                                                            <div className="flex gap-2 text-xs">
+                                                                <p>escape to <button type='button' onClick={cancelEditing} className="text-blue-400 hover:underline">cancel</button> • enter to <button type='submit' className="text-blue-400 hover:underline">save</button></p>
+                                                            </div>
+                                                        </form>
+                                                    )
+                                                }
+
                                                 return (
                                                     <div key={msg.id} className="text-gray-300 relative group/message">
                                                         {msg.replyTo && (
@@ -867,7 +915,7 @@ export default function ChatPage() {
                                                                 <span className="truncate max-w-[200px]">{msg.replyTo.text}</span>
                                                             </div>
                                                         )}
-                                                        {msg.text && <p>{msg.text}</p>}
+                                                        {msg.text && <p>{msg.text} {msg.editedAt && <span className='text-xs text-muted-foreground'>(edited)</span>}</p>}
                                                         {msg.imageUrl && (
                                                             <div className="mt-2 max-w-xs">
                                                                 <Image src={msg.imageUrl} alt="Uploaded image" width={300} height={200} className="rounded-md object-cover" />
@@ -882,6 +930,16 @@ export default function ChatPage() {
                                                             >
                                                                 <MessageSquareReply className="h-4 w-4" />
                                                             </Button>
+                                                             {isEditable && (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="h-7 w-7 text-gray-300 hover:text-white"
+                                                                    onClick={() => startEditing(msg)}
+                                                                >
+                                                                    <Pencil className="h-4 w-4" />
+                                                                </Button>
+                                                            )}
                                                             {canDelete && (
                                                                 <AlertDialogTrigger asChild>
                                                                     <Button
@@ -936,7 +994,7 @@ export default function ChatPage() {
                         </div>
                         </div>
                     )}
-                    {isUploading && <Progress value={uploadProgress} className="w-full h-1 rounded-t-lg" />}
+                    {isUploading && <Progress value={uploadProgress} className="w-full h-1 rounded-none rounded-t-lg" />}
                     <form onSubmit={handleSendMessage} className="relative flex items-center">
                         <Button 
                             type="button" 
