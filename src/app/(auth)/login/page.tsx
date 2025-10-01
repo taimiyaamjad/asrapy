@@ -6,11 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { signInWithPopup } from "firebase/auth";
 import { auth, db, googleAuthProvider } from "@/lib/firebase/client";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { formatDistanceToNow } from "date-fns";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -28,7 +29,30 @@ export default function LoginPage() {
     try {
       const result = await signInWithPopup(auth, googleAuthProvider);
       const user = result.user;
-      await setDoc(doc(db, "users", user.uid), {
+      
+      const userDocRef = doc(db, "users", user.uid);
+      const userDoc = await getDoc(userDocRef);
+
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        if (userData.isBanned) {
+          toast({ variant: 'destructive', title: 'Account Banned', description: 'This account has been permanently banned.' });
+          await auth.signOut();
+          return;
+        }
+        if (userData.timeoutUntil && userData.timeoutUntil.toDate() > new Date()) {
+          const timeLeft = formatDistanceToNow(userData.timeoutUntil.toDate(), { addSuffix: true });
+          toast({
+            variant: 'destructive',
+            title: 'Account in Timeout',
+            description: `You can log in again ${timeLeft}.`,
+          });
+          await auth.signOut();
+          return;
+        }
+      }
+
+      await setDoc(userDocRef, {
         uid: user.uid,
         displayName: user.displayName,
         email: user.email,
@@ -40,7 +64,9 @@ export default function LoginPage() {
         friends: [],
         friendRequests: {},
       }, { merge: true });
+      
       router.push("/chat");
+
     } catch (error) {
       console.error("Google login error:", error);
       toast({ variant: "destructive", title: "Login Failed", description: "Could not log in with Google." });
